@@ -31,9 +31,9 @@
 
 1. **Install** it from **Extensions → Browse Marketplace** in Lens: search for **lens-glance**.
 2. **Choose an AI tool** in Lens: Claude Code, GitHub Copilot CLI, Gemini CLI, Codex or OpenCode.
-3. **Open a cluster's Dashboards** in the navigator, right-click for **New dashboard…**, and tell the agent what you want to see.
+3. **Click + on a cluster's Dashboards** in the navigator, name the dashboard, and tell the agent what you want to see.
 
-For dashboards across clusters, right-click **Fleet dashboards** at the top of the navigator.
+For dashboards across clusters, click **+** on **Fleet dashboards** at the top of the navigator.
 
 ## What's inside
 

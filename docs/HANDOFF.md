@@ -98,19 +98,17 @@ What was learned:
 
 ---
 
-## 3. A "+" on Dashboards and Fleet dashboards
+## 3. A "+" on Dashboards and Fleet dashboards — done
 
-**Where:** the rows of `dashboardsRootKind`, `fleetRootKind` and both folder kinds in
-`src/navigator/dashboards-navigator.injectable.tsx`. `@k8slens/navigator-components` has
-`NavigatorItemActions`, the slot at the end of a row (the bookmark example in `navigator-item-kind.md`
-puts a drill-down button there).
+`NewDashboardAction` in `src/navigator/dashboards-navigator.injectable.tsx`: an `AddIcon` button with the tooltip "New
+dashboard" in `NavigatorItemActions`, on the rows of `dashboardsRootKind`, `fleetRootKind` and both folder kinds. It
+calls `navigatorActions.newDashboard` with `(clusterId, "")`, `(fleetScope, "fleet")` or the folder's id, which asks for a
+name and opens the new dashboard with its agent. "New folder" stays in the right-click menu.
 
-- An `AddIcon` button in that slot, with the tooltip "New dashboard". It calls `navigatorActions.newDashboard(scope, folder)`: for a cluster's root `(clusterId, "")`, for the fleet's root `(fleetScope, "fleet")`, for a folder that folder's id.
-- **Verify** whether a click in `NavigatorItemActions` also opens or closes the row; stop the event from reaching the row if it does.
-- **Verify** whether Lens shows row actions only on hover; match it.
-- Optionally a second "New folder" button, or keep that in the right-click menu.
+What was learned:
 
-**Done when** one click on "+" asks for a name and opens the new dashboard, with the agent, in that folder.
+- **A click in `NavigatorItemActions` does not open or close the row,** as long as the button uses `$onClick`: element-components' `$onClick` marks the event as used, and the row's own `$onClick` skips a used event. That is how Lens's drill-down button works too. A plain `onClick` would toggle the row.
+- **Lens shows row actions at all times,** not on hover (the drill-down arrow of every cluster, Extensions' badge and arrow), so the "+" is always there too. Styled like `NavigatorDrillDownButton`: `$interactive`, an icon of `{ size: "s", min: "s" }`.
 
 ---
 
