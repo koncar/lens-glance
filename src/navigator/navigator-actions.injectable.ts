@@ -3,6 +3,7 @@ import { showErrorNotificationInjectionToken } from "@k8slens/notifications-cont
 import { nameOfDashboard } from "../dashboard-files/dashboard-library.injectable";
 import { libraryActionsInjectable } from "../dashboard-files/library-actions.injectable";
 import { openDashboardInjectable } from "../dashboard-tab/open-dashboard.injectable";
+import { dashboardPinsInjectable } from "../hotbar/dashboard-pins.injectable";
 import { askInjectable } from "../modals/dashboard-modals.injectable";
 
 // What the rows of the dashboards in the navigator, and their menus, do: each asks what it
@@ -15,6 +16,7 @@ export const navigatorActionsInjectable = getInjectable2({
     const { askForName, askToConfirm } = di.inject(askInjectable)();
     const library = di.inject(libraryActionsInjectable)();
     const openDashboard = di.inject(openDashboardInjectable)();
+    const pins = di.inject(dashboardPinsInjectable)();
     const showErrorNotification = di.inject(showErrorNotificationInjectionToken)();
 
     const reporting =
@@ -65,13 +67,18 @@ export const navigatorActionsInjectable = getInjectable2({
         );
 
         if (title) {
-          await library.renameDashboard(path, title);
+          const renamed = await library.renameDashboard(path, title);
+
+          if (renamed !== path) {
+            await pins.follow(path, renamed);
+          }
         }
       }),
 
       deleteDashboard: reporting("delete the dashboard", async (path: string) => {
         if (await askToConfirm("Delete dashboard", `Delete ${path}? This cannot be undone.`, "Delete")) {
           await library.deleteDashboard(path);
+          await pins.follow(path);
         }
       }),
 

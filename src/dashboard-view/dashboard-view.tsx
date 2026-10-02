@@ -18,7 +18,9 @@ import {
   ExpandMoreIcon,
   InfoOutlineIcon,
   OpenInBrowserIcon,
+  PushPinIcon,
   RefreshIcon,
+  ShareIcon,
   TerminalIcon,
 } from "@k8slens/icon";
 import { MoreButton, PlainButton } from "@k8slens/input-components";
@@ -37,6 +39,8 @@ import {
 } from "../fleet/fleet-menus.injectable";
 import { fleetSelectionInjectable } from "../fleet/fleet-selection.injectable";
 import { fleetScope } from "../fleet/fleet-settings.injectable";
+import { dashboardPinsInjectable } from "../hotbar/dashboard-pins.injectable";
+import { shareMenuKind } from "../sharing/share-menu.injectable";
 import { LookForHubs } from "../fleet/hub-discovery.injectable";
 import { drawerFrameAttribute, EditorDrawer } from "../dashboard-edit/editor-drawer";
 import { inApplicationWindowInjectable } from "../dashboard-window/in-application-window.injectable";
@@ -211,9 +215,27 @@ const OpenInWindowButton = ({ viewModel }: { readonly viewModel: DashboardViewMo
   );
 };
 
+// Ringed while the dashboard is in the hotbar.
+const PinButton = observer(({ viewModel }: { readonly viewModel: DashboardViewModel }) => {
+  const pins = useSyncInject(dashboardPinsInjectable);
+  const dashboard = { clusterId: viewModel.clusterId, fileName: viewModel.fileName };
+  const pinned = pins.isPinned(dashboard).get();
+
+  return (
+    <ToolbarButton
+      $onClick={() => void pins.toggle(dashboard)}
+      $tooltip={pinned ? "Unpin from hotbar" : "Pin to hotbar"}
+      active={pinned}
+    >
+      <PushPinIcon $size="m" />
+    </ToolbarButton>
+  );
+});
+
 const DashboardHeader = observer(
   ({ viewModel, status }: { readonly viewModel: DashboardViewModel; readonly status?: DashboardStatus }) => {
-    // In a window of its own, the dashboard is shown alone: the agent stays in its tab.
+    // In a window of its own, the dashboard is shown alone: the agent stays in its tab, and the
+    // hotbar is the application window's.
     const inApplicationWindow = useSyncInject(inApplicationWindowInjectable);
     const dashboard = viewModel.dashboard.get();
     const file = viewModel.file.get();
@@ -264,6 +286,16 @@ const DashboardHeader = observer(
         >
           <EditIcon $size="m" />
         </ToolbarButton>
+        <ToolbarButton
+          $anchor
+          $dropDownMenu={dropDownMenu(shareMenuKind, {
+            data: { fileName: viewModel.fileName },
+            position: "bottom span-left",
+          })}
+          $tooltip="Share"
+        >
+          <ShareIcon $size="m" />
+        </ToolbarButton>
         {inApplicationWindow && (
           <>
             <ToolbarButton
@@ -273,6 +305,7 @@ const DashboardHeader = observer(
             >
               <TerminalIcon $size="m" />
             </ToolbarButton>
+            <PinButton viewModel={viewModel} />
             <OpenInWindowButton viewModel={viewModel} />
           </>
         )}

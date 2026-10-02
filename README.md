@@ -31,9 +31,9 @@
 
 1. **Install** it from **Extensions → Browse Marketplace** in Lens: search for **lens-glance**.
 2. **Choose an AI tool** in Lens: Claude Code, GitHub Copilot CLI, Gemini CLI, Codex or OpenCode.
-3. **Open a cluster's Dashboards** in the navigator, right-click for **New dashboard…**, and tell the agent what you want to see.
+3. **Click + on a cluster's Dashboards** in the navigator, name the dashboard, and tell the agent what you want to see.
 
-For dashboards across clusters, right-click **Fleet dashboards** at the top of the navigator.
+For dashboards across clusters, click **+** on **Fleet dashboards** at the top of the navigator.
 
 ## What's inside
 
@@ -44,6 +44,8 @@ For dashboards across clusters, right-click **Fleet dashboards** at the top of t
 | **Fleet dashboards** | Drawn from a hub such as Thanos Query, or from each cluster's own Prometheus at once. The same dashboard works with either. |
 | **Data sources** | Found cluster by cluster: Services, Grafana's provisioned datasources and Perses's. Each one says whether it needs its cluster connected. A Prometheus-compatible address that answers from your machine is used directly, without connecting to the cluster at all. |
 | **Edit by hand** | A pencil turns it on: drag and resize panels; add, edit, duplicate and delete panels and groups; edit variables and the JSON; and **Undo**, which takes back the last change, yours or the agent's. |
+| **Share with your team** | **Copy JSON** or **Save to Downloads** from a dashboard's share button, and **Import dashboard…** from the navigator: paste it or pick the file, and its problems are listed before anything is written. What travels is the plain Perses dashboard, nothing of yours. |
+| **Hotbar pins** | Pin a dashboard to Lens's hotbar from its header or its menu in the navigator, and it opens with one click from anywhere. Pins follow renames and deletes. |
 | **A window of its own** | Pop a dashboard out of Lens onto a second screen, from its header or its tab's menu. It stays live, with its own time range, variables and editing; the agent stays in the dashboard's tab. |
 | **Safe by design** | A panel that fails shows its error in its own card, and the rest keep working. A file with a mistake keeps the last good version on screen, with the problems listed above it. |
 

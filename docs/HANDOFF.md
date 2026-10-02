@@ -1,11 +1,12 @@
 # Handoff: next features for Lens Glance
 
-Four features were next, in this order (each is a pull request of its own, stacked on the one before):
+Four features were next, in this order. The first three and version 1 of the fourth are built, each in a pull
+request of its own stacked on the one before (#1 to #4); their sections below say what was learned.
 
-1. **Pop a dashboard out into its own window**, so it can stay on a second screen.
-2. **Pin a dashboard to the hotbar**, so it opens with one click from anywhere.
-3. **A "+" on Dashboards and Fleet dashboards in the navigator**, so creating a dashboard is one click.
-4. **Share dashboards with the team**: export and import JSON first, team sync after.
+1. **Pop a dashboard out into its own window**, so it can stay on a second screen. Done.
+2. **Pin a dashboard to the hotbar**, so it opens with one click from anywhere. Done.
+3. **A "+" on Dashboards and Fleet dashboards in the navigator**, so creating a dashboard is one click. Done.
+4. **Share dashboards with the team**: export and import JSON first (done), team sync after (next).
 
 Read *Orientation* and *Gotchas* before you start: they hold what cost the most time to learn.
 
@@ -79,67 +80,47 @@ What was learned:
 
 ---
 
-## 2. Pin a dashboard to the hotbar
+## 2. Pin a dashboard to the hotbar — done
 
-**Contract:** `@k8slens/hotbar-contracts` (add `^2.0.2`): `getHotbarItemKind`,
-`getHotbarItemKindInjectableBunch`, `addToHotbarInjectionToken`, `isInHotbarInjectionToken`,
-`isInHotbarReactiveInjectionToken`, `removeFromHotbarInjectionToken`, `hotbarItemMenuKind`.
-Read `hotbar-item-kind.md` and `hotbar-items.md`.
+Built in `src/hotbar/`: the kind (`dashboard-hotbar-kind.ts`, persisted data `{ clusterId, fileName }`, id
+`dashboard(${clusterId}/${fileName})`), the item (the dashboard glyph, `LayersIcon` for the fleet, with a four-letter label
+along the bottom as Lens labels its clusters, and the dashboard and its cluster in the tooltip), and
+`dashboardPinsInjectable`, which pins, unpins, toggles, opens and follows. Entry points: "Pin to hotbar" / "Unpin from
+hotbar" in the navigator menus of dashboards, the `PushPinIcon` button in the header (ringed while pinned, application
+window only), and "Open in new window" in the item's own hotbar menu (`getHotbarItemMenuItemInjectableBunch`, which
+the package exports though the instructions file shows only the plain menu kind).
 
-**Shape:**
+What was learned:
 
-```ts
-export const dashboardHotbarKind = getHotbarItemKind<{ clusterId: string; fileName: string; title: string }>()("dashboard");
-// id: `dashboard(${clusterId}/${fileName})`; the fleet's clusterId is "fleet".
-```
-
-- **The item:** the dashboard icon (`LayersIcon` for the fleet) and a short label, sized to the slot Lens frames. Look at how Lens's own cluster items look first. Clicking it opens the dashboard with `openDashboardInjectable`.
-- **A toggle:** ask `isInHotbar` first (adding an id twice throws), then add or remove. Show the state reactively.
-
-**Entry points:**
-- "Pin to hotbar" / "Unpin from hotbar" in the navigator menus of dashboards (`dashboardMenuRows` in `src/navigator/dashboards-navigator.injectable.tsx`).
-- A pin button in the dashboard header (`PushPinIcon`, ringed while pinned).
-- A row in the item's own hotbar menu (`hotbarItemMenuKind`), such as "Open in new window" once feature 1 exists.
-
-**Keep it true:**
-- **Rename and delete** (`libraryActionsInjectable`): remove the old item, and re-add it under the new id when it was pinned.
-- **A pinned dashboard whose file is gone:** opening it shows "Waiting for the file". Better: notify, and offer to unpin.
-
-**Done when** a dashboard pins, unpins and opens from the hotbar, survives a restart, and follows renames and deletes.
+- **The hotbar answers for its current page alone:** `isInHotbar`, `addToHotbar` and `removeFromHotbar` only see the page on screen, and there is no listing of a kind's items. So a rename or delete (`navigatorActions`, via `pins.follow`) removes the old pin and adds the new one only on the current page, and the re-added pin lands in the first free slot rather than the old one. A pin on another page finds its file gone when it is next clicked, and offers to unpin it (a confirm modal).
+- **A cluster's dashboard may be pinned under any cluster,** since every cluster shows the same library, so following a rename asks about every cluster in `allClusterRecordsInjectionToken`; a fleet dashboard only under `fleet`.
+- **The menu rows of dashboards in the navigator** did not close their menu (`close` was taken but not called). They do now.
+- **Not verified by hand:** how the item looks in its slot, and that pins survive a restart (Lens persists hotbar items; nothing of ours is needed for that).
 
 ---
 
-## 3. A "+" on Dashboards and Fleet dashboards
+## 3. A "+" on Dashboards and Fleet dashboards — done
 
-**Where:** the rows of `dashboardsRootKind`, `fleetRootKind` and both folder kinds in
-`src/navigator/dashboards-navigator.injectable.tsx`. `@k8slens/navigator-components` has
-`NavigatorItemActions`, the slot at the end of a row (the bookmark example in `navigator-item-kind.md`
-puts a drill-down button there).
+`NewDashboardAction` in `src/navigator/dashboards-navigator.injectable.tsx`: an `AddIcon` button with the tooltip "New
+dashboard" in `NavigatorItemActions`, on the rows of `dashboardsRootKind`, `fleetRootKind` and both folder kinds. It
+calls `navigatorActions.newDashboard` with `(clusterId, "")`, `(fleetScope, "fleet")` or the folder's id, which asks for a
+name and opens the new dashboard with its agent. "New folder" stays in the right-click menu.
 
-- An `AddIcon` button in that slot, with the tooltip "New dashboard". It calls `navigatorActions.newDashboard(scope, folder)`: for a cluster's root `(clusterId, "")`, for the fleet's root `(fleetScope, "fleet")`, for a folder that folder's id.
-- **Verify** whether a click in `NavigatorItemActions` also opens or closes the row; stop the event from reaching the row if it does.
-- **Verify** whether Lens shows row actions only on hover; match it.
-- Optionally a second "New folder" button, or keep that in the right-click menu.
+What was learned:
 
-**Done when** one click on "+" asks for a name and opens the new dashboard, with the agent, in that folder.
+- **A click in `NavigatorItemActions` does not open or close the row,** as long as the button uses `$onClick`: element-components' `$onClick` marks the event as used, and the row's own `$onClick` skips a used event. That is how Lens's drill-down button works too. A plain `onClick` would toggle the row.
+- **Lens shows row actions at all times,** not on hover (the drill-down arrow of every cluster, Extensions' badge and arrow), so the "+" is always there too. Styled like `NavigatorDrillDownButton`: `$interactive`, an icon of `{ size: "s", min: "s" }`.
 
 ---
 
 ## 4. Share dashboards with the team
 
-**Version 1: export and import JSON.** This is what was asked for now.
+**Version 1: export and import JSON — done.** In `src/sharing/`:
 
-- **What a shared dashboard is:** the file as it is, plain Perses JSON. It opens in Perses and anywhere else Perses dashboards do. A fleet dashboard is told apart by its path when imported (offer the fleet's folder when its queries use `$__cluster_label`), not by anything added to the file.
-- **Export**, from the dashboard header's menu, the navigator's dashboard menus and a command:
-  - *Copy JSON*: `navigator.clipboard.writeText` in our own UI. **Verify** that the clipboard is allowed in Lens's window.
-  - *Save to Downloads…*: write `~/Downloads/<name>.json` with `writeFileInjectable`, then reveal it (`open -R` on macOS, `xdg-open <folder>` on Linux) and notify with the path.
-- **Import**, from the Dashboards and Fleet dashboards menus (and their folders) and a command, as a modal (`getModalInjectableBunch`, styled with `@k8slens/modal-components`):
-  - Paste the JSON into a text area, **or** choose a file with an `<input type="file">` of our own in the modal, read with `file.text()`.
-  - Validate it with `validateDashboard`, and list the problems in the modal.
-  - Choose the folder: a cluster's library or the fleet's.
-  - Take the name from `spec.display.name` or `metadata.name`; on a clash, offer a new name or overwriting it, after a confirmation.
-  - Write it with `writeFileInjectable`, refresh the library and open it.
-- **Leave out** anything a dashboard can't carry to another person: nothing is in `.lens/`, and the data source choice is per user, so nothing of that travels.
+- **Export** (`exportDashboardInjectable`): *Copy JSON* and *Save to Downloads*, from the share button (`ShareIcon`) in the header (both windows: it needs only the shell, the clipboard and notifications), the navigator's dashboard menus, and the commands **Dashboards: Copy JSON** / **Save to Downloads** (while a dashboard tab is on screen). What is shared is the file as it is, read with `cat`. Downloads go to `xdg-user-dir DOWNLOAD` or `~/Downloads`, under a free name (`name.json`, `name-2.json`, …), and are revealed with `open -R` on macOS and `xdg-open <folder>` elsewhere.
+- **The clipboard is allowed:** Lens itself copies with `navigator.clipboard.writeText` in the renderer and sets no permission handler that would refuse it. (Lens's own `copyToClipboardInjectionToken` of `@k8slens/electron-contracts` is not in the instructions file, so it is not used.)
+- **Import** (`importDashboardInjectable`, the modal in `import-dashboard-modal.injectable.tsx`, pure helpers in `import-draft.ts`): from the menus of Dashboards, Fleet dashboards and their folders, and the command **Dashboards: Import dashboard**. Paste into a CodeMirror JSON editor (the drawer's), or choose a file with an `<input type="file">` read with `file.text()`. `validateDashboard` runs as it is typed and its problems are listed; Import stays disabled until there are none. The folder list is the cluster's library (when started under a cluster) and the fleet's, preselected as where it was started; the name comes from `spec.display.name` or `metadata.name`. A query using `$__cluster_label` offers "Put it in Fleet dashboards". A clash turns Import into *Replace…*, which asks again before writing. The file is written pretty-printed, the library refreshed, and the dashboard opened.
+- **Checked** outside Lens against the real library: every dashboard validates and round-trips, names and clashes come out right, the fleet dashboard is recognised. **Not verified by hand:** the modal itself, copying, saving and revealing.
 
 **Version 2: team sync through git.** This fits teams best.
 
@@ -152,13 +133,13 @@ puts a drill-down button there).
 - **Reading works today.** Read `PersesDashboard` resources, or ConfigMaps labelled like Grafana's dashboard sidecar, from a cluster with `kubeResourcesInjectionToken`, and offer them for import, so a team's dashboards come with the cluster. This mirrors the datasource discovery in `src/fleet/hub-discovery.injectable.tsx`.
 - **Writing back is blocked:** the surface can patch resources but not create them. Report "create a Kubernetes resource" if this is wanted.
 
-**Done (version 1) when** a dashboard exported on one machine imports on another, opens and draws
-the same, problems in a pasted file are listed before anything is written, and nothing is overwritten
-without a confirmation.
+Versions 2 and 3 are what is next.
 
 ---
 
 ## Also open, from the last session
+
+- **From features 1 to 4:** restore popped-out windows after a restart (feature 1), keep a window's time range in step with its tab (feature 1), and try by hand what the pull requests list as not tried yet: the hotbar item in its slot, the import modal, copying and saving.
 
 - **Credentials for direct data sources:** a command that prints a token (like kubectl's exec auth), a bearer token, basic auth, or AWS SigV4 through `curl --aws-sigv4`.
 - **Export to plain Perses for the web:** turn `$__cluster_filter` and `$__cluster_label` into ordinary Perses variables.
