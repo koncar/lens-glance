@@ -24,8 +24,8 @@
 
 | | |
 | :---: | :---: |
-| <img src="https://raw.githubusercontent.com/koncar/lens-glance/main/docs/images/fleet.png" alt="A fleet dashboard with its data source and cluster pickers"><br>**Fleet dashboards**: one place, every cluster | <img src="https://raw.githubusercontent.com/koncar/lens-glance/main/docs/images/edit.png" alt="Editing a panel by hand in the side drawer"><br>**Edit by hand**: drag, resize, panel editor |
-| <img src="https://raw.githubusercontent.com/koncar/lens-glance/main/docs/images/data-sources.png" alt="Data sources found in each cluster"><br>**Data sources**: found in your clusters, by type | <img src="https://raw.githubusercontent.com/koncar/lens-glance/main/docs/images/navigator.png" alt="Dashboards and folders in the navigator"><br>**Folders of dashboards**: per cluster and for the fleet |
+| <img src="https://raw.githubusercontent.com/koncar/lens-glance/main/docs/images/ask.png" alt="Asking the agent for a cluster health dashboard"><br>**Ask in plain words**: the agent reads the dashboard first | <img src="https://raw.githubusercontent.com/koncar/lens-glance/main/docs/images/edit.png" alt="Editing a panel's query by hand in the side drawer"><br>**Edit by hand**: the panel editor, with a live preview |
+| <img src="https://raw.githubusercontent.com/koncar/lens-glance/main/docs/images/drag.png" alt="Dragging a panel to a new place on the grid"><br>**Drag and resize**: every move is saved to the file | <img src="https://raw.githubusercontent.com/koncar/lens-glance/main/docs/images/variables.png" alt="A namespace picker with All and Only"><br>**Variables**: pick values, or **Only** one |
 
 ## Get started in a minute
 

@@ -186,7 +186,7 @@ without a confirmation.
 
 - **Credentials for direct data sources:** a command that prints a token (like kubectl's exec auth), a bearer token, basic auth, or AWS SigV4 through `curl --aws-sigv4`.
 - **Export to plain Perses for the web:** turn `$__cluster_filter` and `$__cluster_label` into ordinary Perses variables.
-- **README screenshots:** the README links `docs/images/agent-building.png`, `fleet.png`, `edit.png`, `data-sources.png` and `navigator.png`. Capture them from Lens and keep internal cluster and team names out of public images.
+- **README screenshots of the fleet:** a fleet dashboard and the Data sources page would sell the multi-cluster side; the README shows only per-cluster views so far. Keep internal cluster, team, namespace and service names out of public images.
 - **Windows:** every file and query goes through POSIX shell commands.
 - **Agent sessions** share one working folder, so `claude --continue` resumes the folder's latest conversation, not necessarily this dashboard's.
 
