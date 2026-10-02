@@ -40,7 +40,8 @@
   "scripts": {
     "build": "lens-types-check && node build.mjs",
     "watch": "node build.mjs --watch",
-    "clean": "rimraf dist/"
+    "clean": "rimraf dist/",
+    "notices": "node build.mjs --metafile && node scripts/third-party-notices.cjs && rm bundle-meta.json"
   },
   "dependencies": {
     "@k8slens/ai-tools-contracts": "^1.0.4",
