@@ -1,0 +1,663 @@
+import { clusterNavigatorItemKind } from "@k8slens/cluster-contracts";
+import { useCloseDropDownMenu } from "@k8slens/drop-down-menu-contracts";
+import { DropDownMenuItemRow, DropDownMenuSeparator } from "@k8slens/drop-down-menu-items";
+import {
+  AddIcon,
+  LayersIcon,
+  SettingsIcon,
+  CreateNewFolderIcon,
+  DashboardIcon,
+  DeleteIcon,
+  EditIcon,
+  FolderIcon,
+  FolderOpenIcon,
+  OpenInBrowserIcon,
+} from "@k8slens/icon";
+import {
+  NavigatorBranchIndicator,
+  NavigatorItemIcon,
+  navigatorItemIconSize,
+  NavigatorItemLabel,
+  NavigatorLeafIndicator,
+} from "@k8slens/navigator-components";
+import {
+  getNavigatorItemKind,
+  getNavigatorItemKindInjectableBunch,
+  getNavigatorItemMenuItemInjectableBunch,
+  type NavigatorItemOfKind,
+  navigatorRootKind,
+  navigatorItemDropDownMenuOrderNumbers,
+  type NavigatorItemProps,
+  useItemHasChildren,
+  useItemIsOpen,
+} from "@k8slens/navigator-contracts";
+import { useSyncInject } from "@k8slens/use-inject";
+import { computed } from "mobx";
+import { dashboardLibraryInjectable } from "../dashboard-files/dashboard-library.injectable";
+import { openFleetPreferencesInjectable } from "../fleet/fleet-menus.injectable";
+import { fleetFolder, fleetScope } from "../fleet/fleet-settings.injectable";
+import { LookForHubs } from "../fleet/hub-discovery.injectable";
+import { navigatorActionsInjectable } from "./navigator-actions.injectable";
+
+interface TreeItem {
+  readonly id: string;
+  readonly name: string;
+  readonly orderNumber: number;
+}
+
+interface DashboardItem extends TreeItem {
+  readonly path: string;
+}
+
+// The library of dashboards under every cluster, as Grafana lists them: "Dashboards", the
+// folders in it, and the dashboards in each. Whichever cluster it is opened under, a dashboard
+// shows that cluster's metrics.
+export const dashboardsRootKind = getNavigatorItemKind<TreeItem, [clusterId: string]>()("dashboards");
+export const dashboardFolderKind = getNavigatorItemKind<TreeItem, [clusterId: string, rootId: string]>()(
+  "dashboard-folder",
+);
+export const topDashboardKind = getNavigatorItemKind<DashboardItem, [clusterId: string, rootId: string]>()("dashboard");
+export const folderDashboardKind = getNavigatorItemKind<
+  DashboardItem,
+  [clusterId: string, rootId: string, folder: string]
+>()("dashboard-in-folder");
+
+const rootItems = computed((): TreeItem[] => [{ id: "dashboards", name: "Dashboards", orderNumber: 5 }]);
+
+const isFleetPath = (path: string) => path === fleetFolder || path.startsWith(`${fleetFolder}/`);
+
+// Fleet dashboards, which are no one cluster's: at the top of the navigator, in a folder of the
+// library of their own, each drawn from a data source rather than a cluster. The root's id is
+// the scope their tabs open in, so the rows and menus of dashboards serve them as they are.
+export const fleetRootKind = getNavigatorItemKind<TreeItem, []>()("fleet-dashboards");
+export const fleetFolderKind = getNavigatorItemKind<TreeItem, [rootId: string]>()("fleet-dashboard-folder");
+export const fleetTopDashboardKind = getNavigatorItemKind<DashboardItem, [rootId: string]>()("fleet-dashboard");
+export const fleetFolderDashboardKind = getNavigatorItemKind<DashboardItem, [rootId: string, folder: string]>()(
+  "fleet-dashboard-in-folder",
+);
+
+const fleetRootItems = computed((): TreeItem[] => [{ id: fleetScope, name: "Fleet dashboards", orderNumber: 900 }]);
+
+const DashboardsRootRow = ({ kind, ids, item }: NavigatorItemProps<TreeItem, typeof clusterNavigatorItemKind>) => {
+  const isOpen = useItemIsOpen(kind, ...ids);
+  const hasChildren = useItemHasChildren(kind, ...ids);
+
+  return (
+    <>
+      {hasChildren ? <NavigatorBranchIndicator isOpen={isOpen} /> : <NavigatorLeafIndicator />}
+      <NavigatorItemIcon>
+        <DashboardIcon $size={navigatorItemIconSize} />
+      </NavigatorItemIcon>
+      <NavigatorItemLabel>{item.name}</NavigatorItemLabel>
+    </>
+  );
+};
+
+const FleetRootRow = ({ kind, ids, item }: NavigatorItemProps<TreeItem, typeof navigatorRootKind>) => {
+  const isOpen = useItemIsOpen(kind, ...ids);
+  const hasChildren = useItemHasChildren(kind, ...ids);
+
+  return (
+    <>
+      {hasChildren ? <NavigatorBranchIndicator isOpen={isOpen} /> : <NavigatorLeafIndicator />}
+      <NavigatorItemIcon>
+        <LayersIcon $size={navigatorItemIconSize} />
+      </NavigatorItemIcon>
+      <NavigatorItemLabel>{item.name}</NavigatorItemLabel>
+      {/* Opened, the fleet's dashboards look for hubs in the connected clusters. */}
+      {isOpen && <LookForHubs />}
+    </>
+  );
+};
+
+const FleetFolderRow = ({ kind, ids, item }: NavigatorItemProps<TreeItem, typeof fleetRootKind>) => {
+  const isOpen = useItemIsOpen(kind, ...ids);
+  const hasChildren = useItemHasChildren(kind, ...ids);
+
+  return (
+    <>
+      {hasChildren ? <NavigatorBranchIndicator isOpen={isOpen} /> : <NavigatorLeafIndicator />}
+      <NavigatorItemIcon>
+        {isOpen ? <FolderOpenIcon $size={navigatorItemIconSize} /> : <FolderIcon $size={navigatorItemIconSize} />}
+      </NavigatorItemIcon>
+      <NavigatorItemLabel>{item.name}</NavigatorItemLabel>
+    </>
+  );
+};
+
+const FolderRow = ({ kind, ids, item }: NavigatorItemProps<TreeItem, typeof dashboardsRootKind>) => {
+  const isOpen = useItemIsOpen(kind, ...ids);
+  const hasChildren = useItemHasChildren(kind, ...ids);
+
+  return (
+    <>
+      {hasChildren ? <NavigatorBranchIndicator isOpen={isOpen} /> : <NavigatorLeafIndicator />}
+      <NavigatorItemIcon>
+        {isOpen ? <FolderOpenIcon $size={navigatorItemIconSize} /> : <FolderIcon $size={navigatorItemIconSize} />}
+      </NavigatorItemIcon>
+      <NavigatorItemLabel>{item.name}</NavigatorItemLabel>
+    </>
+  );
+};
+
+const DashboardRow = ({ ids, item }: { readonly ids: readonly string[]; readonly item: DashboardItem }) => {
+  const { open } = useSyncInject(navigatorActionsInjectable);
+
+  return (
+    <>
+      <NavigatorLeafIndicator />
+      <NavigatorItemIcon>
+        <DashboardIcon $size={navigatorItemIconSize} />
+      </NavigatorItemIcon>
+      <NavigatorItemLabel onClick={() => void open(ids[0], item.path)}>{item.name}</NavigatorItemLabel>
+    </>
+  );
+};
+
+const TopDashboardRow = ({ ids, item }: NavigatorItemProps<DashboardItem, typeof dashboardsRootKind>) => (
+  <DashboardRow ids={ids} item={item} />
+);
+
+const FolderDashboardRow = ({ ids, item }: NavigatorItemProps<DashboardItem, typeof dashboardFolderKind>) => (
+  <DashboardRow ids={ids} item={item} />
+);
+
+const FleetTopDashboardRow = ({ ids, item }: NavigatorItemProps<DashboardItem, typeof fleetRootKind>) => (
+  <DashboardRow ids={ids} item={item} />
+);
+
+const FleetFolderDashboardRow = ({ ids, item }: NavigatorItemProps<DashboardItem, typeof fleetFolderKind>) => (
+  <DashboardRow ids={ids} item={item} />
+);
+
+export const dashboardsRootBunch = getNavigatorItemKindInjectableBunch({
+  kind: dashboardsRootKind,
+  parentKind: clusterNavigatorItemKind,
+  description: "The library of dashboards, under every cluster.",
+  items: { instantiate: () => async () => rootItems },
+  Component: DashboardsRootRow,
+});
+
+export const dashboardFolderBunch = getNavigatorItemKindInjectableBunch({
+  kind: dashboardFolderKind,
+  parentKind: dashboardsRootKind,
+  description: "A folder of dashboards in the library.",
+  items: {
+    instantiate: (di) => {
+      const { library } = di.inject(dashboardLibraryInjectable)();
+
+      return async () =>
+        computed(() =>
+          library
+            .get()
+            .folders.filter((folder) => !isFleetPath(folder))
+            .map((folder, index): TreeItem => ({ id: folder, name: folder, orderNumber: 10 + index })),
+        );
+    },
+  },
+  Component: FolderRow,
+});
+
+export const topDashboardBunch = getNavigatorItemKindInjectableBunch({
+  kind: topDashboardKind,
+  parentKind: dashboardsRootKind,
+  description: "A dashboard at the top of the library.",
+  items: {
+    instantiate: (di) => {
+      const { library } = di.inject(dashboardLibraryInjectable)();
+
+      return async () =>
+        computed(() =>
+          library
+            .get()
+            .dashboards.filter((dashboard) => dashboard.folder === "")
+            .map((dashboard, index): DashboardItem => ({
+              id: dashboard.path,
+              name: dashboard.name,
+              path: dashboard.path,
+              orderNumber: 1000 + index,
+            })),
+        );
+    },
+  },
+  Component: TopDashboardRow,
+});
+
+export const folderDashboardBunch = getNavigatorItemKindInjectableBunch({
+  kind: folderDashboardKind,
+  parentKind: dashboardFolderKind,
+  description: "A dashboard in a folder of the library.",
+  items: {
+    instantiate: (di) => {
+      const { library } = di.inject(dashboardLibraryInjectable)();
+
+      return async (_clusterId, _rootId, folder) =>
+        computed(() =>
+          library
+            .get()
+            .dashboards.filter((dashboard) => dashboard.folder === folder)
+            .map((dashboard, index): DashboardItem => ({
+              id: dashboard.path,
+              name: dashboard.name,
+              path: dashboard.path,
+              orderNumber: index,
+            })),
+        );
+    },
+  },
+  Component: FolderDashboardRow,
+});
+
+export const fleetRootBunch = getNavigatorItemKindInjectableBunch({
+  kind: fleetRootKind,
+  parentKind: navigatorRootKind,
+  description: "Dashboards of the whole fleet, drawn from a data source rather than one cluster.",
+  items: { instantiate: () => async () => fleetRootItems },
+  Component: FleetRootRow,
+});
+
+export const fleetFolderBunch = getNavigatorItemKindInjectableBunch({
+  kind: fleetFolderKind,
+  parentKind: fleetRootKind,
+  description: "A folder of fleet dashboards.",
+  items: {
+    instantiate: (di) => {
+      const { library } = di.inject(dashboardLibraryInjectable)();
+
+      return async () =>
+        computed(() =>
+          library
+            .get()
+            .folders.filter((folder) => folder.startsWith(`${fleetFolder}/`))
+            .map((folder, index): TreeItem => ({
+              id: folder,
+              name: folder.slice(fleetFolder.length + 1),
+              orderNumber: 10 + index,
+            })),
+        );
+    },
+  },
+  Component: FleetFolderRow,
+});
+
+export const fleetTopDashboardBunch = getNavigatorItemKindInjectableBunch({
+  kind: fleetTopDashboardKind,
+  parentKind: fleetRootKind,
+  description: "A fleet dashboard at the top of the fleet's folder.",
+  items: {
+    instantiate: (di) => {
+      const { library } = di.inject(dashboardLibraryInjectable)();
+
+      return async () =>
+        computed(() =>
+          library
+            .get()
+            .dashboards.filter((dashboard) => dashboard.folder === fleetFolder)
+            .map((dashboard, index): DashboardItem => ({
+              id: dashboard.path,
+              name: dashboard.name,
+              path: dashboard.path,
+              orderNumber: 1000 + index,
+            })),
+        );
+    },
+  },
+  Component: FleetTopDashboardRow,
+});
+
+export const fleetFolderDashboardBunch = getNavigatorItemKindInjectableBunch({
+  kind: fleetFolderDashboardKind,
+  parentKind: fleetFolderKind,
+  description: "A fleet dashboard in a folder.",
+  items: {
+    instantiate: (di) => {
+      const { library } = di.inject(dashboardLibraryInjectable)();
+
+      return async (_rootId, folder) =>
+        computed(() =>
+          library
+            .get()
+            .dashboards.filter((dashboard) => dashboard.folder === folder)
+            .map((dashboard, index): DashboardItem => ({
+              id: dashboard.path,
+              name: dashboard.name,
+              path: dashboard.path,
+              orderNumber: index,
+            })),
+        );
+    },
+  },
+  Component: FleetFolderDashboardRow,
+});
+
+// The rows of the menus a user right-clicks these open.
+
+const menuOrder = navigatorItemDropDownMenuOrderNumbers.sectionEnd;
+
+const NewDashboardInRoot = ({ data }: { readonly data: NavigatorItemOfKind<typeof dashboardsRootKind> }) => {
+  const { newDashboard } = useSyncInject(navigatorActionsInjectable);
+  const close = useCloseDropDownMenu();
+
+  return (
+    <DropDownMenuItemRow
+      Icon={AddIcon}
+      $onClick={() => {
+        close();
+        void newDashboard(data.ids[0], "");
+      }}
+    >
+      New dashboard…
+    </DropDownMenuItemRow>
+  );
+};
+
+const NewFolderInRoot = () => {
+  const { newFolder } = useSyncInject(navigatorActionsInjectable);
+  const close = useCloseDropDownMenu();
+
+  return (
+    <DropDownMenuItemRow
+      Icon={CreateNewFolderIcon}
+      $onClick={() => {
+        close();
+        void newFolder("");
+      }}
+    >
+      New folder…
+    </DropDownMenuItemRow>
+  );
+};
+
+const NewDashboardInFolder = ({ data }: { readonly data: NavigatorItemOfKind<typeof dashboardFolderKind> }) => {
+  const { newDashboard } = useSyncInject(navigatorActionsInjectable);
+  const close = useCloseDropDownMenu();
+
+  return (
+    <DropDownMenuItemRow
+      Icon={AddIcon}
+      $onClick={() => {
+        close();
+        void newDashboard(data.ids[0], data.ids[2]);
+      }}
+    >
+      New dashboard…
+    </DropDownMenuItemRow>
+  );
+};
+
+const NewFolderInFolder = ({ data }: { readonly data: NavigatorItemOfKind<typeof dashboardFolderKind> }) => {
+  const { newFolder } = useSyncInject(navigatorActionsInjectable);
+  const close = useCloseDropDownMenu();
+
+  return (
+    <DropDownMenuItemRow
+      Icon={CreateNewFolderIcon}
+      $onClick={() => {
+        close();
+        void newFolder(data.ids[2]);
+      }}
+    >
+      New folder…
+    </DropDownMenuItemRow>
+  );
+};
+
+const DeleteFolder = ({ data }: { readonly data: NavigatorItemOfKind<typeof dashboardFolderKind> }) => {
+  const { deleteFolder } = useSyncInject(navigatorActionsInjectable);
+  const close = useCloseDropDownMenu();
+
+  return (
+    <DropDownMenuItemRow
+      Icon={DeleteIcon}
+      $onClick={() => {
+        close();
+        void deleteFolder(data.ids[2]);
+      }}
+    >
+      Delete folder
+    </DropDownMenuItemRow>
+  );
+};
+
+const dashboardMenuRows = (
+  kind:
+    | typeof topDashboardKind
+    | typeof folderDashboardKind
+    | typeof fleetTopDashboardKind
+    | typeof fleetFolderDashboardKind,
+  idPrefix: string,
+) => {
+  const pathOf = (ids: readonly string[]) => ids[ids.length - 1];
+
+  const Open = ({ data }: { readonly data: NavigatorItemOfKind<typeof kind> }) => {
+    const { open } = useSyncInject(navigatorActionsInjectable);
+    const close = useCloseDropDownMenu();
+
+    return (
+      <DropDownMenuItemRow Icon={OpenInBrowserIcon} $onClick={() => void open(data.ids[0], pathOf(data.ids))}>
+        Open
+      </DropDownMenuItemRow>
+    );
+  };
+
+  const Rename = ({ data }: { readonly data: NavigatorItemOfKind<typeof kind> }) => {
+    const { renameDashboard } = useSyncInject(navigatorActionsInjectable);
+    const close = useCloseDropDownMenu();
+
+    return (
+      <DropDownMenuItemRow Icon={EditIcon} $onClick={() => void renameDashboard(pathOf(data.ids))}>
+        Rename…
+      </DropDownMenuItemRow>
+    );
+  };
+
+  const Delete = ({ data }: { readonly data: NavigatorItemOfKind<typeof kind> }) => {
+    const { deleteDashboard } = useSyncInject(navigatorActionsInjectable);
+    const close = useCloseDropDownMenu();
+
+    return (
+      <DropDownMenuItemRow Icon={DeleteIcon} $onClick={() => void deleteDashboard(pathOf(data.ids))}>
+        Delete…
+      </DropDownMenuItemRow>
+    );
+  };
+
+  return [
+    getNavigatorItemMenuItemInjectableBunch({
+      id: `${idPrefix}-open`,
+      forItemsOfKind: kind,
+      orderNumber: menuOrder + 10,
+      Component: Open,
+    }),
+    getNavigatorItemMenuItemInjectableBunch({
+      id: `${idPrefix}-rename`,
+      forItemsOfKind: kind,
+      orderNumber: menuOrder + 20,
+      Component: Rename,
+    }),
+    getNavigatorItemMenuItemInjectableBunch({
+      id: `${idPrefix}-separator`,
+      forItemsOfKind: kind,
+      orderNumber: menuOrder + 30,
+      Component: DropDownMenuSeparator,
+    }),
+    getNavigatorItemMenuItemInjectableBunch({
+      id: `${idPrefix}-delete`,
+      forItemsOfKind: kind,
+      orderNumber: menuOrder + 40,
+      Component: Delete,
+    }),
+  ];
+};
+
+export const [openTopDashboardBunch, renameTopDashboardBunch, separatorTopDashboardBunch, deleteTopDashboardBunch] =
+  dashboardMenuRows(topDashboardKind, "lens-glance-top-dashboard");
+
+export const [
+  openFolderDashboardBunch,
+  renameFolderDashboardBunch,
+  separatorFolderDashboardBunch,
+  deleteFolderDashboardBunch,
+] = dashboardMenuRows(folderDashboardKind, "lens-glance-folder-dashboard");
+
+export const newDashboardInRootBunch = getNavigatorItemMenuItemInjectableBunch({
+  id: "lens-glance-new-dashboard-in-root",
+  forItemsOfKind: dashboardsRootKind,
+  orderNumber: menuOrder + 10,
+  Component: NewDashboardInRoot,
+});
+
+export const newFolderInRootBunch = getNavigatorItemMenuItemInjectableBunch({
+  id: "lens-glance-new-folder-in-root",
+  forItemsOfKind: dashboardsRootKind,
+  orderNumber: menuOrder + 20,
+  Component: NewFolderInRoot,
+});
+
+export const newDashboardInFolderBunch = getNavigatorItemMenuItemInjectableBunch({
+  id: "lens-glance-new-dashboard-in-folder",
+  forItemsOfKind: dashboardFolderKind,
+  orderNumber: menuOrder + 10,
+  Component: NewDashboardInFolder,
+});
+
+export const newFolderInFolderBunch = getNavigatorItemMenuItemInjectableBunch({
+  id: "lens-glance-new-folder-in-folder",
+  forItemsOfKind: dashboardFolderKind,
+  orderNumber: menuOrder + 20,
+  Component: NewFolderInFolder,
+});
+
+export const deleteFolderBunch = getNavigatorItemMenuItemInjectableBunch({
+  id: "lens-glance-delete-folder",
+  forItemsOfKind: dashboardFolderKind,
+  orderNumber: menuOrder + 40,
+  Component: DeleteFolder,
+});
+
+export const [
+  openFleetTopDashboardBunch,
+  renameFleetTopDashboardBunch,
+  separatorFleetTopDashboardBunch,
+  deleteFleetTopDashboardBunch,
+] = dashboardMenuRows(fleetTopDashboardKind, "lens-glance-fleet-top-dashboard");
+
+export const [
+  openFleetFolderDashboardBunch,
+  renameFleetFolderDashboardBunch,
+  separatorFleetFolderDashboardBunch,
+  deleteFleetFolderDashboardBunch,
+] = dashboardMenuRows(fleetFolderDashboardKind, "lens-glance-fleet-folder-dashboard");
+
+const NewFleetDashboard = ({ data }: { readonly data: { readonly ids: readonly string[] } }) => {
+  const { newDashboard } = useSyncInject(navigatorActionsInjectable);
+  const close = useCloseDropDownMenu();
+  // Over the fleet's root, its folder; over one of its folders, that folder.
+  const folder = data.ids[1] ?? fleetFolder;
+
+  return (
+    <DropDownMenuItemRow
+      Icon={AddIcon}
+      $onClick={() => {
+        close();
+        void newDashboard(fleetScope, folder);
+      }}
+    >
+      New fleet dashboard…
+    </DropDownMenuItemRow>
+  );
+};
+
+const NewFleetFolder = ({ data }: { readonly data: { readonly ids: readonly string[] } }) => {
+  const { newFolder } = useSyncInject(navigatorActionsInjectable);
+  const close = useCloseDropDownMenu();
+  const parent = data.ids[1] ?? fleetFolder;
+
+  return (
+    <DropDownMenuItemRow
+      Icon={CreateNewFolderIcon}
+      $onClick={() => {
+        close();
+        void newFolder(parent);
+      }}
+    >
+      New folder…
+    </DropDownMenuItemRow>
+  );
+};
+
+const DeleteFleetFolder = ({ data }: { readonly data: NavigatorItemOfKind<typeof fleetFolderKind> }) => {
+  const { deleteFolder } = useSyncInject(navigatorActionsInjectable);
+  const close = useCloseDropDownMenu();
+
+  return (
+    <DropDownMenuItemRow
+      Icon={DeleteIcon}
+      $onClick={() => {
+        close();
+        void deleteFolder(data.ids[1]);
+      }}
+    >
+      Delete folder
+    </DropDownMenuItemRow>
+  );
+};
+
+const ManageDataSourcesRow = () => {
+  const openPreferences = useSyncInject(openFleetPreferencesInjectable);
+  const close = useCloseDropDownMenu();
+
+  return (
+    <DropDownMenuItemRow
+      Icon={SettingsIcon}
+      $onClick={() => {
+        close();
+        void openPreferences();
+      }}
+    >
+      Data sources…
+    </DropDownMenuItemRow>
+  );
+};
+
+export const newFleetDashboardInRootBunch = getNavigatorItemMenuItemInjectableBunch({
+  id: "lens-glance-new-fleet-dashboard-in-root",
+  forItemsOfKind: fleetRootKind,
+  orderNumber: menuOrder + 10,
+  Component: NewFleetDashboard,
+});
+
+export const newFleetFolderInRootBunch = getNavigatorItemMenuItemInjectableBunch({
+  id: "lens-glance-new-fleet-folder-in-root",
+  forItemsOfKind: fleetRootKind,
+  orderNumber: menuOrder + 20,
+  Component: NewFleetFolder,
+});
+
+export const manageDataSourcesInRootBunch = getNavigatorItemMenuItemInjectableBunch({
+  id: "lens-glance-fleet-data-sources",
+  forItemsOfKind: fleetRootKind,
+  orderNumber: menuOrder + 30,
+  Component: ManageDataSourcesRow,
+});
+
+export const newFleetDashboardInFolderBunch = getNavigatorItemMenuItemInjectableBunch({
+  id: "lens-glance-new-fleet-dashboard-in-folder",
+  forItemsOfKind: fleetFolderKind,
+  orderNumber: menuOrder + 10,
+  Component: NewFleetDashboard,
+});
+
+export const newFleetFolderInFolderBunch = getNavigatorItemMenuItemInjectableBunch({
+  id: "lens-glance-new-fleet-folder-in-folder",
+  forItemsOfKind: fleetFolderKind,
+  orderNumber: menuOrder + 20,
+  Component: NewFleetFolder,
+});
+
+export const deleteFleetFolderBunch = getNavigatorItemMenuItemInjectableBunch({
+  id: "lens-glance-delete-fleet-folder",
+  forItemsOfKind: fleetFolderKind,
+  orderNumber: menuOrder + 40,
+  Component: DeleteFleetFolder,
+});

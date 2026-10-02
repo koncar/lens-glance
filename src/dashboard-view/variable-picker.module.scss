@@ -1,0 +1,10 @@
+// "Only" belongs to the row under the pointer or the keyboard, as it does in Lens's lists of
+// actions: shown there, hidden elsewhere so the values read as a plain list.
+.row .only {
+  visibility: hidden;
+}
+
+.row:hover .only,
+.row:focus-within .only {
+  visibility: visible;
+}

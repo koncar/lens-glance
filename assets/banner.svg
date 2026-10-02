@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600" width="1200" height="600">
+  <!-- Lens Glance: the eye, the name, and a dashboard taking shape beside them. -->
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2f7fbf"/>
+      <stop offset="1" stop-color="#14304f"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="600" fill="url(#background)"/>
+
+  <g transform="translate(250 180) scale(2.6)">
+    <path fill="#ffffff" d="M8 32C15 19.5 23 14 32 14s17 5.5 24 18c-7 12.5-15 18-24 18S15 44.5 8 32z"/>
+    <circle cx="32" cy="32" r="11" fill="#173a5c"/>
+    <path fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M23.5 33.5h4l2.5-5 4 9 2.5-4h4"/>
+  </g>
+  <text x="330" y="420" text-anchor="middle" font-family="-apple-system, 'Segoe UI', Roboto, sans-serif" font-size="64" font-weight="700" fill="#ffffff">Lens Glance</text>
+  <text x="330" y="462" text-anchor="middle" font-family="-apple-system, 'Segoe UI', Roboto, sans-serif" font-size="24" fill="#cfe3f5">Cluster dashboards an agent builds with you</text>
+
+  <g fill="#ffffff" fill-opacity="0.1" stroke="#ffffff" stroke-opacity="0.35" stroke-width="2">
+    <rect x="620" y="150" width="160" height="96" rx="10"/>
+    <rect x="796" y="150" width="160" height="96" rx="10"/>
+    <rect x="620" y="262" width="336" height="190" rx="10"/>
+  </g>
+  <g font-family="-apple-system, 'Segoe UI', Roboto, sans-serif" fill="#ffffff">
+    <text x="640" y="182" font-size="16" fill-opacity="0.8">Pods running</text>
+    <text x="640" y="226" font-size="36" font-weight="700">128</text>
+    <text x="816" y="182" font-size="16" fill-opacity="0.8">CPU in use</text>
+    <text x="816" y="226" font-size="36" font-weight="700">3.4</text>
+    <text x="640" y="294" font-size="16" fill-opacity="0.8">Memory by namespace</text>
+  </g>
+  <polyline fill="none" stroke="#7cc4ff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" points="644,420 690,392 736,404 782,350 828,366 874,318 932,330"/>
+  <polyline fill="none" stroke="#5fd39a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" points="644,432 690,420 736,426 782,400 828,410 874,388 932,394"/>
+</svg>

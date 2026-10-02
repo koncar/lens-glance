@@ -1,0 +1,403 @@
+{
+  "kind": "Dashboard",
+  "metadata": {
+    "name": "workloads",
+    "project": "lens"
+  },
+  "spec": {
+    "display": {
+      "name": "Workloads",
+      "description": "What the workloads of the chosen namespaces use, and how healthy they are"
+    },
+    "duration": "1h",
+    "refreshInterval": "30s",
+    "variables": [
+      {
+        "kind": "ListVariable",
+        "spec": {
+          "name": "namespace",
+          "display": {
+            "name": "Namespace"
+          },
+          "allowMultiple": true,
+          "allowAllValue": true,
+          "defaultValue": "$__all",
+          "plugin": {
+            "kind": "PrometheusLabelValuesVariable",
+            "spec": {
+              "labelName": "namespace",
+              "matchers": [
+                "kube_pod_info{$__cluster_filter}"
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "panels": {
+      "podsRunning": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Pods running"
+          },
+          "plugin": {
+            "kind": "StatChart",
+            "spec": {
+              "calculation": "last-number",
+              "format": {
+                "unit": "decimal"
+              },
+              "sparkline": {}
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "sum(kube_pod_status_phase{phase=\"Running\", namespace=~\"$namespace\", $__cluster_filter})"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "podsNotReady": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Pods not ready"
+          },
+          "plugin": {
+            "kind": "StatChart",
+            "spec": {
+              "calculation": "last-number",
+              "format": {
+                "unit": "decimal"
+              },
+              "colorMode": "value",
+              "thresholds": {
+                "steps": [
+                  {
+                    "value": 1,
+                    "color": "#e53935"
+                  }
+                ]
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "sum(kube_pod_status_ready{condition=\"false\", namespace=~\"$namespace\", $__cluster_filter}) or vector(0)"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "cpuInUse": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "CPU in use",
+            "description": "Cores"
+          },
+          "plugin": {
+            "kind": "StatChart",
+            "spec": {
+              "calculation": "last-number",
+              "format": {
+                "unit": "decimal",
+                "decimalPlaces": 2
+              },
+              "sparkline": {}
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "sum(rate(container_cpu_usage_seconds_total{container!=\"\", namespace=~\"$namespace\", $__cluster_filter}[$__rate_interval]))"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "memoryInUse": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Memory in use"
+          },
+          "plugin": {
+            "kind": "StatChart",
+            "spec": {
+              "calculation": "last-number",
+              "format": {
+                "unit": "bytes"
+              },
+              "sparkline": {}
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "sum(container_memory_working_set_bytes{container!=\"\", namespace=~\"$namespace\", $__cluster_filter})"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "cpuByNamespace": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "CPU by namespace",
+            "description": "Cores used, summed per namespace"
+          },
+          "plugin": {
+            "kind": "TimeSeriesChart",
+            "spec": {
+              "legend": {
+                "position": "bottom",
+                "mode": "list"
+              },
+              "yAxis": {
+                "format": {
+                  "unit": "decimal"
+                },
+                "min": 0
+              },
+              "visual": {
+                "display": "line",
+                "areaOpacity": 0.1
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "sum by (namespace) (rate(container_cpu_usage_seconds_total{container!=\"\", namespace=~\"$namespace\", $__cluster_filter}[$__rate_interval]))",
+                    "seriesNameFormat": "{{namespace}}"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "memoryByNamespace": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Memory by namespace",
+            "description": "Working set, summed per namespace"
+          },
+          "plugin": {
+            "kind": "TimeSeriesChart",
+            "spec": {
+              "legend": {
+                "position": "bottom",
+                "mode": "list"
+              },
+              "yAxis": {
+                "format": {
+                  "unit": "bytes"
+                },
+                "min": 0
+              },
+              "visual": {
+                "display": "line",
+                "areaOpacity": 0.1
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "sum by (namespace) (container_memory_working_set_bytes{container!=\"\", namespace=~\"$namespace\", $__cluster_filter})",
+                    "seriesNameFormat": "{{namespace}}"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "restartingPods": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Pods that restarted",
+            "description": "Container restarts in the time range"
+          },
+          "plugin": {
+            "kind": "Table",
+            "spec": {
+              "density": "compact",
+              "columnSettings": [
+                {
+                  "name": "namespace",
+                  "header": "Namespace"
+                },
+                {
+                  "name": "pod",
+                  "header": "Pod"
+                },
+                {
+                  "name": "value",
+                  "header": "Restarts",
+                  "format": {
+                    "unit": "decimal"
+                  },
+                  "sort": "desc"
+                },
+                {
+                  "name": "timestamp",
+                  "hide": true
+                }
+              ]
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "sum by (namespace, pod) (increase(kube_pod_container_status_restarts_total{namespace=~\"$namespace\", $__cluster_filter}[$__range])) > 0"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "layouts": [
+      {
+        "kind": "Grid",
+        "spec": {
+          "display": {
+            "title": "Now"
+          },
+          "items": [
+            {
+              "x": 0,
+              "y": 0,
+              "width": 6,
+              "height": 4,
+              "content": {
+                "$ref": "#/spec/panels/podsRunning"
+              }
+            },
+            {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 4,
+              "content": {
+                "$ref": "#/spec/panels/podsNotReady"
+              }
+            },
+            {
+              "x": 12,
+              "y": 0,
+              "width": 6,
+              "height": 4,
+              "content": {
+                "$ref": "#/spec/panels/cpuInUse"
+              }
+            },
+            {
+              "x": 18,
+              "y": 0,
+              "width": 6,
+              "height": 4,
+              "content": {
+                "$ref": "#/spec/panels/memoryInUse"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "kind": "Grid",
+        "spec": {
+          "display": {
+            "title": "Over time"
+          },
+          "items": [
+            {
+              "x": 0,
+              "y": 0,
+              "width": 12,
+              "height": 8,
+              "content": {
+                "$ref": "#/spec/panels/cpuByNamespace"
+              }
+            },
+            {
+              "x": 12,
+              "y": 0,
+              "width": 12,
+              "height": 8,
+              "content": {
+                "$ref": "#/spec/panels/memoryByNamespace"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "kind": "Grid",
+        "spec": {
+          "display": {
+            "title": "Problems"
+          },
+          "items": [
+            {
+              "x": 0,
+              "y": 0,
+              "width": 24,
+              "height": 9,
+              "content": {
+                "$ref": "#/spec/panels/restartingPods"
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
