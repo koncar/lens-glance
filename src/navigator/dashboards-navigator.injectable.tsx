@@ -12,8 +12,6 @@ import {
   FolderIcon,
   FolderOpenIcon,
   OpenInBrowserIcon,
-  PushOffIcon,
-  PushPinIcon,
   UploadFileIcon,
 } from "@k8slens/icon";
 import { Button } from "@k8slens/element-components";
@@ -47,6 +45,7 @@ import { dashboardPinsInjectable } from "../hotbar/dashboard-pins.injectable";
 import { importDashboardInjectable } from "../sharing/import-dashboard.injectable";
 import type { ImportTarget } from "../sharing/import-draft";
 import { CopyJsonRow, SaveToDownloadsRow } from "../sharing/share-menu.injectable";
+import { PinIcon, UnpinIcon } from "../ui/pin-icons";
 import { navigatorActionsInjectable } from "./navigator-actions.injectable";
 
 interface TreeItem {
@@ -520,7 +519,7 @@ const dashboardMenuRows = (
 
     return (
       <DropDownMenuItemRow
-        Icon={pinned ? PushOffIcon : PushPinIcon}
+        Icon={pinned ? UnpinIcon : PinIcon}
         $onClick={() => {
           close();
           void pins.toggle(dashboard);
