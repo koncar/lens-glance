@@ -8,6 +8,8 @@ What changed in each version of this extension, newest first.
 - Pin a dashboard to the hotbar, from the pin in its header or its menu in the navigator, and open it with one click from anywhere. Renaming or deleting a dashboard updates its pins, and a pin whose dashboard is gone offers to unpin itself.
 - The menus of dashboards in the navigator close when one of their rows is chosen.
 - A "+" at the end of **Dashboards**, **Fleet dashboards** and their folders in the navigator creates a dashboard there in one click, and opens it with the agent.
+- Share dashboards as plain Perses JSON: **Copy JSON** or **Save to Downloads** from the share button in a dashboard's header, its menu in the navigator, or the commands of the same names.
+- **Import dashboard…** from the menus of Dashboards, Fleet dashboards and their folders, or the command: paste the JSON or choose its file, see its problems listed before anything is written, pick the folder and the name, and confirm before an existing dashboard is replaced.
 
 ## 0.1.0
 

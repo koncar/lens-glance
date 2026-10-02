@@ -14,6 +14,7 @@ import {
   OpenInBrowserIcon,
   PushOffIcon,
   PushPinIcon,
+  UploadFileIcon,
 } from "@k8slens/icon";
 import { Button } from "@k8slens/element-components";
 import {
@@ -43,6 +44,9 @@ import { openFleetPreferencesInjectable } from "../fleet/fleet-menus.injectable"
 import { fleetFolder, fleetScope } from "../fleet/fleet-settings.injectable";
 import { LookForHubs } from "../fleet/hub-discovery.injectable";
 import { dashboardPinsInjectable } from "../hotbar/dashboard-pins.injectable";
+import { importDashboardInjectable } from "../sharing/import-dashboard.injectable";
+import type { ImportTarget } from "../sharing/import-draft";
+import { CopyJsonRow, SaveToDownloadsRow } from "../sharing/share-menu.injectable";
 import { navigatorActionsInjectable } from "./navigator-actions.injectable";
 
 interface TreeItem {
@@ -432,6 +436,38 @@ const NewFolderInFolder = ({ data }: { readonly data: NavigatorItemOfKind<typeof
   );
 };
 
+// Imports a dashboard someone shared into the folder the menu was opened over; the cluster it
+// was opened under, if any, is whose library is offered besides the fleet's.
+const ImportDashboard = ({ target, clusterId }: { readonly target: ImportTarget; readonly clusterId?: string }) => {
+  const importDashboard = useSyncInject(importDashboardInjectable);
+  const close = useCloseDropDownMenu();
+
+  return (
+    <DropDownMenuItemRow
+      Icon={UploadFileIcon}
+      $onClick={() => {
+        close();
+        void importDashboard(target, clusterId);
+      }}
+    >
+      Import dashboard…
+    </DropDownMenuItemRow>
+  );
+};
+
+const ImportInRoot = ({ data }: { readonly data: NavigatorItemOfKind<typeof dashboardsRootKind> }) => (
+  <ImportDashboard target={{ clusterId: data.ids[0], folder: "" }} clusterId={data.ids[0]} />
+);
+
+const ImportInFolder = ({ data }: { readonly data: NavigatorItemOfKind<typeof dashboardFolderKind> }) => (
+  <ImportDashboard target={{ clusterId: data.ids[0], folder: data.ids[2] }} clusterId={data.ids[0]} />
+);
+
+// Over the fleet's root, its folder; over one of its folders, that folder.
+const ImportInFleet = ({ data }: { readonly data: { readonly ids: readonly string[] } }) => (
+  <ImportDashboard target={{ clusterId: fleetScope, folder: data.ids[1] ?? fleetFolder }} />
+);
+
 const DeleteFolder = ({ data }: { readonly data: NavigatorItemOfKind<typeof dashboardFolderKind> }) => {
   const { deleteFolder } = useSyncInject(navigatorActionsInjectable);
   const close = useCloseDropDownMenu();
@@ -512,6 +548,14 @@ const dashboardMenuRows = (
     );
   };
 
+  const CopyJson = ({ data }: { readonly data: NavigatorItemOfKind<typeof kind> }) => (
+    <CopyJsonRow fileName={pathOf(data.ids)} />
+  );
+
+  const SaveToDownloads = ({ data }: { readonly data: NavigatorItemOfKind<typeof kind> }) => (
+    <SaveToDownloadsRow fileName={pathOf(data.ids)} />
+  );
+
   const Delete = ({ data }: { readonly data: NavigatorItemOfKind<typeof kind> }) => {
     const { deleteDashboard } = useSyncInject(navigatorActionsInjectable);
     const close = useCloseDropDownMenu();
@@ -549,6 +593,18 @@ const dashboardMenuRows = (
       Component: Rename,
     }),
     getNavigatorItemMenuItemInjectableBunch({
+      id: `${idPrefix}-copy-json`,
+      forItemsOfKind: kind,
+      orderNumber: menuOrder + 22,
+      Component: CopyJson,
+    }),
+    getNavigatorItemMenuItemInjectableBunch({
+      id: `${idPrefix}-save-to-downloads`,
+      forItemsOfKind: kind,
+      orderNumber: menuOrder + 24,
+      Component: SaveToDownloads,
+    }),
+    getNavigatorItemMenuItemInjectableBunch({
       id: `${idPrefix}-separator`,
       forItemsOfKind: kind,
       orderNumber: menuOrder + 30,
@@ -567,6 +623,8 @@ export const [
   openTopDashboardBunch,
   pinTopDashboardBunch,
   renameTopDashboardBunch,
+  copyJsonTopDashboardBunch,
+  saveToDownloadsTopDashboardBunch,
   separatorTopDashboardBunch,
   deleteTopDashboardBunch,
 ] = dashboardMenuRows(topDashboardKind, "lens-glance-top-dashboard");
@@ -575,6 +633,8 @@ export const [
   openFolderDashboardBunch,
   pinFolderDashboardBunch,
   renameFolderDashboardBunch,
+  copyJsonFolderDashboardBunch,
+  saveToDownloadsFolderDashboardBunch,
   separatorFolderDashboardBunch,
   deleteFolderDashboardBunch,
 ] = dashboardMenuRows(folderDashboardKind, "lens-glance-folder-dashboard");
@@ -584,6 +644,13 @@ export const newDashboardInRootBunch = getNavigatorItemMenuItemInjectableBunch({
   forItemsOfKind: dashboardsRootKind,
   orderNumber: menuOrder + 10,
   Component: NewDashboardInRoot,
+});
+
+export const importInRootBunch = getNavigatorItemMenuItemInjectableBunch({
+  id: "lens-glance-import-in-root",
+  forItemsOfKind: dashboardsRootKind,
+  orderNumber: menuOrder + 15,
+  Component: ImportInRoot,
 });
 
 export const newFolderInRootBunch = getNavigatorItemMenuItemInjectableBunch({
@@ -598,6 +665,13 @@ export const newDashboardInFolderBunch = getNavigatorItemMenuItemInjectableBunch
   forItemsOfKind: dashboardFolderKind,
   orderNumber: menuOrder + 10,
   Component: NewDashboardInFolder,
+});
+
+export const importInFolderBunch = getNavigatorItemMenuItemInjectableBunch({
+  id: "lens-glance-import-in-folder",
+  forItemsOfKind: dashboardFolderKind,
+  orderNumber: menuOrder + 15,
+  Component: ImportInFolder,
 });
 
 export const newFolderInFolderBunch = getNavigatorItemMenuItemInjectableBunch({
@@ -618,6 +692,8 @@ export const [
   openFleetTopDashboardBunch,
   pinFleetTopDashboardBunch,
   renameFleetTopDashboardBunch,
+  copyJsonFleetTopDashboardBunch,
+  saveToDownloadsFleetTopDashboardBunch,
   separatorFleetTopDashboardBunch,
   deleteFleetTopDashboardBunch,
 ] = dashboardMenuRows(fleetTopDashboardKind, "lens-glance-fleet-top-dashboard");
@@ -626,6 +702,8 @@ export const [
   openFleetFolderDashboardBunch,
   pinFleetFolderDashboardBunch,
   renameFleetFolderDashboardBunch,
+  copyJsonFleetFolderDashboardBunch,
+  saveToDownloadsFleetFolderDashboardBunch,
   separatorFleetFolderDashboardBunch,
   deleteFleetFolderDashboardBunch,
 ] = dashboardMenuRows(fleetFolderDashboardKind, "lens-glance-fleet-folder-dashboard");
@@ -708,6 +786,13 @@ export const newFleetDashboardInRootBunch = getNavigatorItemMenuItemInjectableBu
   Component: NewFleetDashboard,
 });
 
+export const importInFleetRootBunch = getNavigatorItemMenuItemInjectableBunch({
+  id: "lens-glance-import-in-fleet-root",
+  forItemsOfKind: fleetRootKind,
+  orderNumber: menuOrder + 15,
+  Component: ImportInFleet,
+});
+
 export const newFleetFolderInRootBunch = getNavigatorItemMenuItemInjectableBunch({
   id: "lens-glance-new-fleet-folder-in-root",
   forItemsOfKind: fleetRootKind,
@@ -727,6 +812,13 @@ export const newFleetDashboardInFolderBunch = getNavigatorItemMenuItemInjectable
   forItemsOfKind: fleetFolderKind,
   orderNumber: menuOrder + 10,
   Component: NewFleetDashboard,
+});
+
+export const importInFleetFolderBunch = getNavigatorItemMenuItemInjectableBunch({
+  id: "lens-glance-import-in-fleet-folder",
+  forItemsOfKind: fleetFolderKind,
+  orderNumber: menuOrder + 15,
+  Component: ImportInFleet,
 });
 
 export const newFleetFolderInFolderBunch = getNavigatorItemMenuItemInjectableBunch({

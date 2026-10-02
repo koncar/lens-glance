@@ -20,6 +20,7 @@ import {
   OpenInBrowserIcon,
   PushPinIcon,
   RefreshIcon,
+  ShareIcon,
   TerminalIcon,
 } from "@k8slens/icon";
 import { MoreButton, PlainButton } from "@k8slens/input-components";
@@ -39,6 +40,7 @@ import {
 import { fleetSelectionInjectable } from "../fleet/fleet-selection.injectable";
 import { fleetScope } from "../fleet/fleet-settings.injectable";
 import { dashboardPinsInjectable } from "../hotbar/dashboard-pins.injectable";
+import { shareMenuKind } from "../sharing/share-menu.injectable";
 import { LookForHubs } from "../fleet/hub-discovery.injectable";
 import { drawerFrameAttribute, EditorDrawer } from "../dashboard-edit/editor-drawer";
 import { inApplicationWindowInjectable } from "../dashboard-window/in-application-window.injectable";
@@ -283,6 +285,16 @@ const DashboardHeader = observer(
           active={viewModel.editing.get()}
         >
           <EditIcon $size="m" />
+        </ToolbarButton>
+        <ToolbarButton
+          $anchor
+          $dropDownMenu={dropDownMenu(shareMenuKind, {
+            data: { fileName: viewModel.fileName },
+            position: "bottom span-left",
+          })}
+          $tooltip="Share"
+        >
+          <ShareIcon $size="m" />
         </ToolbarButton>
         {inApplicationWindow && (
           <>
