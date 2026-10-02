@@ -1,33 +1,160 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600" width="1200" height="600">
-  <!-- Lens Glance: the eye, the name, and a dashboard taking shape beside them. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600" width="960" height="480">
+  <!-- Lens Glance: the name, what it does, and a live dashboard an agent is building, in neon on night. -->
   <defs>
-    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#2f7fbf"/>
-      <stop offset="1" stop-color="#14304f"/>
+    <linearGradient id="night" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#060a1c"/>
+      <stop offset="0.55" stop-color="#110a2e"/>
+      <stop offset="1" stop-color="#071a33"/>
     </linearGradient>
+    <radialGradient id="glow-cyan" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#22d3ee" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#22d3ee" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow-pink" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#e879f9" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#e879f9" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow-blue" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#3b82f6" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#3b82f6" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="wordmark" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.45" stop-color="#a5f3fc"/>
+      <stop offset="1" stop-color="#e9a8ff"/>
+    </linearGradient>
+    <linearGradient id="neon" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#22d3ee"/>
+      <stop offset="0.5" stop-color="#818cf8"/>
+      <stop offset="1" stop-color="#f472b6"/>
+    </linearGradient>
+    <linearGradient id="area" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#22d3ee" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#22d3ee" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="bar" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#818cf8"/>
+      <stop offset="1" stop-color="#f472b6"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.13"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.04"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#67e8f9" stop-opacity="0.9"/>
+      <stop offset="0.5" stop-color="#a78bfa" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#f472b6" stop-opacity="0.9"/>
+    </linearGradient>
+    <pattern id="dots" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.2" fill="#ffffff" fill-opacity="0.09"/>
+    </pattern>
+    <filter id="neon-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <!-- For what is small, the glow needs room well beyond its own box. -->
+    <filter id="dot-glow" x="-300%" y="-300%" width="700%" height="700%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="soft-glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="14"/>
+    </filter>
   </defs>
-  <rect width="1200" height="600" fill="url(#background)"/>
 
-  <g transform="translate(250 180) scale(2.6)">
-    <path fill="#ffffff" d="M8 32C15 19.5 23 14 32 14s17 5.5 24 18c-7 12.5-15 18-24 18S15 44.5 8 32z"/>
-    <circle cx="32" cy="32" r="11" fill="#173a5c"/>
-    <path fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M23.5 33.5h4l2.5-5 4 9 2.5-4h4"/>
-  </g>
-  <text x="330" y="420" text-anchor="middle" font-family="-apple-system, 'Segoe UI', Roboto, sans-serif" font-size="64" font-weight="700" fill="#ffffff">Lens Glance</text>
-  <text x="330" y="462" text-anchor="middle" font-family="-apple-system, 'Segoe UI', Roboto, sans-serif" font-size="24" fill="#cfe3f5">Cluster dashboards an agent builds with you</text>
+  <rect width="1200" height="600" fill="url(#night)"/>
+  <rect width="1200" height="600" fill="url(#dots)"/>
+  <circle cx="930" cy="170" r="380" fill="url(#glow-cyan)"/>
+  <circle cx="1080" cy="560" r="320" fill="url(#glow-pink)"/>
+  <circle cx="170" cy="560" r="380" fill="url(#glow-blue)"/>
 
-  <g fill="#ffffff" fill-opacity="0.1" stroke="#ffffff" stroke-opacity="0.35" stroke-width="2">
-    <rect x="620" y="150" width="160" height="96" rx="10"/>
-    <rect x="796" y="150" width="160" height="96" rx="10"/>
-    <rect x="620" y="262" width="336" height="190" rx="10"/>
+  <!-- The name and what it does. -->
+  <g transform="translate(86 132)">
+    <rect width="72" height="72" rx="18" fill="url(#neon)" filter="url(#soft-glow)" opacity="0.7"/>
+    <rect width="72" height="72" rx="18" fill="url(#neon)"/>
+    <g transform="translate(4 4) scale(1)">
+      <path fill="#ffffff" d="M8 32C15 19.5 23 14 32 14s17 5.5 24 18c-7 12.5-15 18-24 18S15 44.5 8 32z"/>
+      <circle cx="32" cy="32" r="11" fill="#1e1b4b"/>
+      <path fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M23.5 33.5h4l2.5-5 4 9 2.5-4h4"/>
+    </g>
   </g>
-  <g font-family="-apple-system, 'Segoe UI', Roboto, sans-serif" fill="#ffffff">
-    <text x="640" y="182" font-size="16" fill-opacity="0.8">Pods running</text>
-    <text x="640" y="226" font-size="36" font-weight="700">128</text>
-    <text x="816" y="182" font-size="16" fill-opacity="0.8">CPU in use</text>
-    <text x="816" y="226" font-size="36" font-weight="700">3.4</text>
-    <text x="640" y="294" font-size="16" fill-opacity="0.8">Memory by namespace</text>
+  <g font-family="-apple-system, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+    <text x="178" y="166" font-size="17" font-weight="700" letter-spacing="3.5" fill="#67e8f9">AI-BUILT KUBERNETES</text>
+    <text x="178" y="192" font-size="17" font-weight="700" letter-spacing="3.5" fill="#f0abfc">DASHBOARDS IN LENS</text>
+    <text x="80" y="314" font-size="90" font-weight="800" letter-spacing="-2.5" fill="url(#wordmark)">Lens Glance</text>
+    <text x="84" y="374" font-size="29" font-weight="500" fill="#e2e8f0">Describe a dashboard.</text>
+    <text x="84" y="412" font-size="29" font-weight="500" fill="#e2e8f0">Watch an agent build it, <tspan fill="#67e8f9" font-weight="700">live</tspan>.</text>
   </g>
-  <polyline fill="none" stroke="#7cc4ff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" points="644,420 690,392 736,404 782,350 828,366 874,318 932,330"/>
-  <polyline fill="none" stroke="#5fd39a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" points="644,432 690,420 736,426 782,400 828,410 874,388 932,394"/>
+  <g font-family="-apple-system, 'SF Pro Text', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="17" font-weight="600" fill="#e0f2fe">
+    <rect x="84" y="446" width="128" height="38" rx="19" fill="#22d3ee" fill-opacity="0.12" stroke="#22d3ee" stroke-opacity="0.7"/>
+    <text x="148" y="471" text-anchor="middle">Per cluster</text>
+    <rect x="224" y="446" width="138" height="38" rx="19" fill="#818cf8" fill-opacity="0.14" stroke="#818cf8" stroke-opacity="0.8"/>
+    <text x="293" y="471" text-anchor="middle">Whole fleet</text>
+    <rect x="374" y="446" width="148" height="38" rx="19" fill="#f472b6" fill-opacity="0.12" stroke="#f472b6" stroke-opacity="0.75"/>
+    <text x="448" y="471" text-anchor="middle">Perses JSON</text>
+  </g>
+
+  <!-- A dashboard taking shape, tilted toward the name. -->
+  <g transform="rotate(-5 880 300)">
+    <rect x="640" y="96" width="480" height="380" rx="22" fill="#a78bfa" opacity="0.35" filter="url(#soft-glow)"/>
+    <rect x="640" y="96" width="480" height="380" rx="22" fill="#0b1026" fill-opacity="0.82"/>
+    <rect x="640" y="96" width="480" height="380" rx="22" fill="url(#glass)" stroke="url(#rim)" stroke-width="2"/>
+    <circle cx="666" cy="122" r="6" fill="#f87171"/>
+    <circle cx="686" cy="122" r="6" fill="#fbbf24"/>
+    <circle cx="706" cy="122" r="6" fill="#34d399"/>
+    <rect x="980" y="112" width="112" height="22" rx="11" fill="#34d399" fill-opacity="0.18" stroke="#34d399" stroke-opacity="0.8"/>
+    <circle cx="996" cy="123" r="4" fill="#34d399" filter="url(#dot-glow)"/>
+    <text x="1046" y="128" text-anchor="middle" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="700" letter-spacing="1.5" fill="#a7f3d0">LIVE</text>
+
+    <g font-family="-apple-system, 'SF Pro Text', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+      <rect x="662" y="150" width="140" height="84" rx="12" fill="#ffffff" fill-opacity="0.05" stroke="#22d3ee" stroke-opacity="0.35"/>
+      <text x="678" y="176" font-size="13" fill="#94a3b8">Pods running</text>
+      <text x="678" y="216" font-size="34" font-weight="800" fill="#67e8f9" filter="url(#neon-glow)">1,284</text>
+      <rect x="810" y="150" width="140" height="84" rx="12" fill="#ffffff" fill-opacity="0.05" stroke="#818cf8" stroke-opacity="0.4"/>
+      <text x="826" y="176" font-size="13" fill="#94a3b8">CPU in use</text>
+      <text x="826" y="216" font-size="34" font-weight="800" fill="#a5b4fc" filter="url(#neon-glow)">62%</text>
+      <rect x="958" y="150" width="140" height="84" rx="12" fill="#ffffff" fill-opacity="0.05" stroke="#f472b6" stroke-opacity="0.4"/>
+      <text x="974" y="176" font-size="13" fill="#94a3b8">p95 latency</text>
+      <text x="974" y="216" font-size="34" font-weight="800" fill="#f9a8d4" filter="url(#neon-glow)">98ms</text>
+
+      <rect x="662" y="246" width="288" height="210" rx="12" fill="#ffffff" fill-opacity="0.04" stroke="#ffffff" stroke-opacity="0.12"/>
+      <text x="678" y="272" font-size="13" fill="#94a3b8">Memory by namespace</text>
+      <rect x="958" y="246" width="140" height="210" rx="12" fill="#ffffff" fill-opacity="0.04" stroke="#ffffff" stroke-opacity="0.12"/>
+      <text x="974" y="272" font-size="13" fill="#94a3b8">Restarts</text>
+    </g>
+    <path d="M678 430 L712 402 L746 412 L780 364 L814 378 L848 326 L882 340 L934 300 L934 440 L678 440 Z" fill="url(#area)"/>
+    <polyline fill="none" stroke="#22d3ee" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" filter="url(#neon-glow)" points="678,430 712,402 746,412 780,364 814,378 848,326 882,340 934,300"/>
+    <polyline fill="none" stroke="#c084fc" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" filter="url(#neon-glow)" points="678,440 712,428 746,432 780,410 814,418 848,394 882,402 934,382"/>
+    <circle cx="934" cy="300" r="6" fill="#ffffff" filter="url(#dot-glow)"/>
+    <g fill="url(#bar)" filter="url(#neon-glow)">
+      <rect x="976" y="392" width="16" height="48" rx="4"/>
+      <rect x="1000" y="352" width="16" height="88" rx="4"/>
+      <rect x="1024" y="372" width="16" height="68" rx="4"/>
+      <rect x="1048" y="318" width="16" height="122" rx="4"/>
+      <rect x="1072" y="342" width="16" height="98" rx="4"/>
+    </g>
+  </g>
+
+  <!-- What was asked: the agent at work. -->
+  <g transform="translate(574 472)">
+    <rect width="372" height="64" rx="32" fill="#22d3ee" opacity="0.35" filter="url(#soft-glow)"/>
+    <rect width="372" height="64" rx="32" fill="#0b1026" fill-opacity="0.92" stroke="url(#neon)" stroke-width="2"/>
+    <circle cx="32" cy="32" r="18" fill="url(#neon)"/>
+    <path fill="#ffffff" d="M32 20l3 9 9 3-9 3-3 9-3-9-9-3 9-3z"/>
+    <text x="62" y="39" font-family="'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="19" fill="#e2e8f0"><tspan fill="#67e8f9">›</tspan> add CPU by namespace</text>
+    <rect x="334" y="20" width="10" height="24" rx="2" fill="#67e8f9" filter="url(#dot-glow)"/>
+  </g>
+
+  <!-- Sparks. -->
+  <g filter="url(#dot-glow)">
+    <path fill="#67e8f9" d="M600 92l3.5 10.5L614 106l-10.5 3.5L600 120l-3.5-10.5L586 106l10.5-3.5z"/>
+    <path fill="#f9a8d4" d="M1150 220l2.5 7.5 7.5 2.5-7.5 2.5-2.5 7.5-2.5-7.5-7.5-2.5 7.5-2.5z"/>
+    <path fill="#c4b5fd" d="M560 520l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/>
+  </g>
 </svg>

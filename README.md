@@ -1,16 +1,10 @@
-<p align="center">
-  <img src="https://raw.githubusercontent.com/koncar/lens-glance/main/docs/images/banner.png" alt="Lens Glance" width="100%">
-</p>
+![Lens Glance: describe a dashboard, and watch an AI agent build it live in Lens](https://raw.githubusercontent.com/koncar/lens-glance/main/assets/banner.svg)
 
-<h3 align="center">Describe a dashboard. Watch an AI agent build it, live, inside Lens.</h3>
+### Describe a dashboard. Watch an AI agent build it, live, inside Lens.
 
-<p align="center">
-  Kubernetes metrics per cluster or across your whole fleet · Prometheus, Thanos and VictoriaMetrics · plain Perses JSON you own
-</p>
+Kubernetes metrics per cluster or across your whole fleet · Prometheus, Thanos and VictoriaMetrics · plain Perses JSON you own
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/koncar/lens-glance/main/docs/images/agent-building.png" alt="An agent building a dashboard in Lens while it renders live" width="100%">
-</p>
+![An agent building a dashboard in Lens while it renders live](https://raw.githubusercontent.com/koncar/lens-glance/main/docs/images/agent-building.png)
 
 ## Why Lens Glance
 
@@ -18,14 +12,33 @@
 - **✅ It checks its own work.** Each save is validated, and each panel's queries run against your cluster. Empty or failing panels are flagged to the agent, and it fixes them before it says it's done.
 - **🌐 Your whole fleet in one place.** Lens Glance looks in your clusters for Thanos, VictoriaMetrics, Mimir and Grafana's datasources, turns what answers into data sources, and gives every fleet dashboard a cluster picker with **All** and **Only**.
 - **🎨 Looks like Lens, because it is Lens.** Native components, your light or dark theme, panels you drag and resize, and a full panel and query editor when you'd rather edit by hand.
-- **📁 Files, not lock-in.** Every dashboard is a standard [Perses](https://perses.dev) JSON file in `~/.k8slens/lens-glance/dashboards`. Keep them in git, review them in pull requests, and edit them in any editor.
+- **📁 Files, not lock-in.** Every dashboard is a standard [Perses](https://perses.dev) JSON file in `~/.k8slens/lens-glance/dashboards`. Keep them in git, review them in pull requests, share them with your team, and edit them in any editor.
 
 ## See it
 
-| | |
-| :---: | :---: |
-| <img src="https://raw.githubusercontent.com/koncar/lens-glance/main/docs/images/ask.png" alt="Asking the agent for a cluster health dashboard"><br>**Ask in plain words**: the agent reads the dashboard first | <img src="https://raw.githubusercontent.com/koncar/lens-glance/main/docs/images/edit.png" alt="Editing a panel's query by hand in the side drawer"><br>**Edit by hand**: the panel editor, with a live preview |
-| <img src="https://raw.githubusercontent.com/koncar/lens-glance/main/docs/images/drag.png" alt="Dragging a panel to a new place on the grid"><br>**Drag and resize**: every move is saved to the file | <img src="https://raw.githubusercontent.com/koncar/lens-glance/main/docs/images/variables.png" alt="A namespace picker with All and Only"><br>**Variables**: pick values, or **Only** one |
+#### 💬 Ask in plain words
+
+The agent reads the dashboard first, then builds what you asked for.
+
+![Asking the agent for a cluster health dashboard](https://raw.githubusercontent.com/koncar/lens-glance/main/docs/images/ask.png)
+
+#### ✏️ Edit by hand
+
+The panel editor, with a live preview of what you change.
+
+![Editing a panel's query by hand in the side drawer](https://raw.githubusercontent.com/koncar/lens-glance/main/docs/images/edit.png)
+
+#### ↔️ Drag and resize
+
+Every move is saved to the file.
+
+![Dragging a panel to a new place on the grid](https://raw.githubusercontent.com/koncar/lens-glance/main/docs/images/drag.png)
+
+#### 🎚️ Variables
+
+Pick the values to show, or **Only** one.
+
+![A namespace picker with All and Only](https://raw.githubusercontent.com/koncar/lens-glance/main/docs/images/variables.png)
 
 ## Get started in a minute
 
@@ -37,17 +50,15 @@ For dashboards across clusters, click **+** on **Fleet dashboards** at the top o
 
 ## What's inside
 
-| | |
-| --- | --- |
-| **Live dashboards** | Time series, stats, gauges, bar charts, tables and notes, in collapsible groups on a 24-column grid. Time range, auto refresh and variables, such as a namespace picker with **Only**. |
-| **The agent** | Your AI tool in a terminal under the dashboard, which you resize by dragging its edge. It ships with a dashboard-building skill: the format, the panel types, PromQL recipes for Kubernetes, and a way to explore your cluster's metrics before it writes a query. |
-| **Fleet dashboards** | Drawn from a hub such as Thanos Query, or from each cluster's own Prometheus at once. The same dashboard works with either. |
-| **Data sources** | Found cluster by cluster: Services, Grafana's provisioned datasources and Perses's. Each one says whether it needs its cluster connected. A Prometheus-compatible address that answers from your machine is used directly, without connecting to the cluster at all. |
-| **Edit by hand** | A pencil turns it on: drag and resize panels; add, edit, duplicate and delete panels and groups; edit variables and the JSON; and **Undo**, which takes back the last change, yours or the agent's. |
-| **Share with your team** | **Copy JSON** or **Save to Downloads** from a dashboard's share button, and **Import dashboard…** from the navigator: paste it or pick the file, and its problems are listed before anything is written. What travels is the plain Perses dashboard, nothing of yours. |
-| **Hotbar pins** | Pin a dashboard to Lens's hotbar from its header or its menu in the navigator, and it opens with one click from anywhere. Pins follow renames and deletes. |
-| **A window of its own** | Pop a dashboard out of Lens onto a second screen, from its header or its tab's menu. It stays live, with its own time range, variables and editing; the agent stays in the dashboard's tab. |
-| **Safe by design** | A panel that fails shows its error in its own card, and the rest keep working. A file with a mistake keeps the last good version on screen, with the problems listed above it. |
+- **Live dashboards.** Time series, stats, gauges, bar charts, tables and notes, in collapsible groups on a 24-column grid. Time range, auto refresh and variables, such as a namespace picker with **Only**.
+- **The agent.** Your AI tool in a terminal under the dashboard, which you resize by dragging its edge. It ships with a dashboard-building skill: the format, the panel types, PromQL recipes for Kubernetes, and a way to explore your cluster's metrics before it writes a query.
+- **Fleet dashboards.** Drawn from a hub such as Thanos Query, or from each cluster's own Prometheus at once. The same dashboard works with either.
+- **Data sources.** Found cluster by cluster: Services, Grafana's provisioned datasources and Perses's. Each one says whether it needs its cluster connected. A Prometheus-compatible address that answers from your machine is used directly, without connecting to the cluster at all.
+- **Edit by hand.** A pencil turns it on: drag and resize panels; add, edit, duplicate and delete panels and groups; edit variables and the JSON; and **Undo**, which takes back the last change, yours or the agent's.
+- **Share with your team.** **Copy JSON** or **Save to Downloads** from a dashboard's share button, and **Import dashboard…** from the navigator: paste it or pick the file, and its problems are listed before anything is written. What travels is the plain Perses dashboard, nothing of yours.
+- **Hotbar pins.** Pin a dashboard to Lens's hotbar from its header or its menu in the navigator, and it opens with one click from anywhere. Pins follow renames and deletes.
+- **A window of its own.** Pop a dashboard out of Lens onto a second screen, from its header or its tab's menu. It stays live, with its own time range, variables and editing; the agent stays in the dashboard's tab.
+- **Safe by design.** A panel that fails shows its error in its own card, and the rest keep working. A file with a mistake keeps the last good version on screen, with the problems listed above it.
 
 ## Data sources
 
@@ -69,6 +80,4 @@ For dashboards across clusters, click **+** on **Fleet dashboards** at the top o
 
 ---
 
-<p align="center">
-  <a href="https://github.com/koncar/lens-glance/blob/main/CHANGELOG.md">Changelog</a> · <a href="https://github.com/koncar/lens-glance/issues">Report a problem</a> · <a href="https://github.com/koncar/lens-glance/blob/main/LICENSE">MIT License</a> · <a href="https://github.com/koncar/lens-glance/blob/main/THIRD-PARTY-NOTICES.md">Third-party notices</a>
-</p>
+[Changelog](https://github.com/koncar/lens-glance/blob/main/CHANGELOG.md) · [Report a problem](https://github.com/koncar/lens-glance/issues) · [MIT License](https://github.com/koncar/lens-glance/blob/main/LICENSE) · [Third-party notices](https://github.com/koncar/lens-glance/blob/main/THIRD-PARTY-NOTICES.md)
