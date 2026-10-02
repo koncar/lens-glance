@@ -18,7 +18,6 @@ import {
   ExpandMoreIcon,
   InfoOutlineIcon,
   OpenInBrowserIcon,
-  PushPinIcon,
   RefreshIcon,
   ShareIcon,
   TerminalIcon,
@@ -48,6 +47,7 @@ import { openDashboardWindowInjectable } from "../dashboard-window/open-dashboar
 import { panelMenuKind } from "../dashboard-edit/panel-menu.injectable";
 import { PersesPanelBody } from "../perses/perses-panel-body";
 import { Contained } from "../ui/contained";
+import { PinIcon } from "../ui/pin-icons";
 import { ToolbarButton } from "../ui/toolbar-button";
 import { PersesRuntime } from "../perses/perses-runtime";
 import { DashboardGrid, dragHandleClassName, type GridItem, gridColumns, noDragClassName } from "./dashboard-grid";
@@ -227,7 +227,7 @@ const PinButton = observer(({ viewModel }: { readonly viewModel: DashboardViewMo
       $tooltip={pinned ? "Unpin from hotbar" : "Pin to hotbar"}
       active={pinned}
     >
-      <PushPinIcon $size="m" />
+      <PinIcon $size="m" />
     </ToolbarButton>
   );
 });

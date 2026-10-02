@@ -2,6 +2,10 @@
 
 What changed in each version of this extension, newest first.
 
+## 0.2.1
+
+- The pin in a dashboard's header, and Pin to hotbar / Unpin from hotbar in its menu, are drawn in the theme's colour like the icons beside them, rather than in black.
+
 ## 0.2.0
 
 - Open a dashboard in a window of its own, to keep it on a second screen: from the button in its header, the right-click menu of its tab, or **Dashboards: Open in new window**. Opening it again brings the window forward, and changes to the dashboard show in both.
