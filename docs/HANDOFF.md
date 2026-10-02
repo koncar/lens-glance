@@ -1,6 +1,6 @@
 # Handoff: next features for Lens Glance
 
-Four features are next, in this order:
+Four features were next, in this order (each is a pull request of its own, stacked on the one before):
 
 1. **Pop a dashboard out into its own window**, so it can stay on a second screen.
 2. **Pin a dashboard to the hotbar**, so it opens with one click from anywhere.
@@ -55,51 +55,27 @@ outside `fleet/`; fleet dashboards are in `fleet/`. Lens's own files about a das
 - **Perses 0.54 is pinned.** Its `dynamicImportPluginLoader` doesn't match the registry's lookup keys (we key plugins ourselves), and `PanelEditorForm` is deep-imported from `dist/` because it isn't exported. Re-check both before upgrading Perses.
 - **No file system:** everything goes through `runCliCommandInjectionToken` with `shellQuote`d arguments (POSIX shell, so macOS/Linux only).
 - **Generic arrow functions in `.tsx`** need a comma: `<T,>(value: T) => …`.
+- **The extension runs in every window,** a dashboard's own window included, and anything gathered there (commands, menus, modals) is built there. Inject main-view, tab, navigator, hotbar, preferences, AI-tool and terminal tokens only where they run in the application window; see feature 1.
 - **Prettier formats markdown too** when given a folder; check the skill files' frontmatter afterwards.
 
 ---
 
-## 1. Pop a dashboard out into its own window
+## 1. Pop a dashboard out into its own window — done
 
-**Contract:** `@k8slens/sub-window-contracts` (add `^1.0.1`): `getSubWindowKind`,
-`getSubWindowKindInjectableBunch`, `openSubWindowInjectionToken`, and the focus, close and
-is-open tokens. Read `sub-window-kind.md`, `open-sub-window.md` and `address-sub-window.md`.
+Built in `src/dashboard-window/`: the kind (`dashboard-window-kind.ts`, id `dashboard(${clusterId}/${fileName})`),
+the window (`DashboardView` alone, 100vh), and the opener, which reports failures as a notification. Entry points: the
+`OpenInBrowserIcon` button in the header, "Open in new window" in the tab's right-click menu, and the command
+**Dashboards: Open in new window** (offered while a dashboard tab is on screen).
 
-**What a sub-window can't do:** it has **no** main view, tabs, dock, navigator, hotbar, AI tools,
-Ask AI or terminal. Injecting one of those tokens inside the window's component throws. It **has**
-notifications, persistables, CLI commands, drop-down menus, modals, element components and icons,
-stylesheets, messaging, Kubernetes resources, cluster state and Prometheus. So:
+What was learned:
 
-- The window shows the **dashboard alone**: `DashboardView`, without `AgentPanel`.
-- Things to hide in the window: the agent toggle in the header; the "Data sources…" rows, which use `@k8slens/preferences-contracts` (not on the list); and the "Metrics settings" links. Tell the windows apart with `thisWindowIdInjectionToken` (`@k8slens/messaging-contracts`, `window-ids.md`), and pass an `inSubWindow` flag down, or make those controls injectables that answer `undefined` there.
-- **Verify** the fleet's cluster picker in the window: it reads `allClusterRecordsReactiveInjectionToken`, and the docs only promise clusters "readable by their id" there.
-
-**Shape:**
-
-```ts
-export const dashboardWindowKind = getSubWindowKind<{ clusterId: string; fileName: string }>()("dashboard");
-// id: `dashboard(${clusterId}/${fileName})`, so opening it again focuses it.
-// configuration: { title: ({ fileName }) => `Lens Glance: ${nameOfDashboard(fileName)}`, defaultWidth: 1400, defaultHeight: 900 }
-```
-
-**Entry points:**
-- An "Open in new window" button in the dashboard header (`OpenInBrowserIcon` or `FullscreenIcon`).
-- A row in the tab's right-click menu (`mainViewTabMenuKind`, `isVisible` on our tab kind's `tabType`; log `tabType` once to learn its value).
-- A command, **Dashboards: Open in new window**.
-
-**State:** each window has its own DI and so its own view model: time range, variables, edit mode,
-undo. The file is the source of truth and every window polls it, so content stays in sync without
-work. Keeping the time range in step across windows is optional, with
-`getWindowComputedChannelProviderInjectableBunch` / `computedChannelOfWindowInjectionToken`.
-
-**Edge cases:**
-- Two windows editing at once: the last write wins, and each window has its own undo.
-- Closing the main tab while the window is open: the window keeps working.
-- **Verify** whether Lens restores sub-windows after a restart.
-
-**Done when** a dashboard opens in its own window from all three entry points and draws its
-panels, pickers and edit mode there with nothing from the list above failing, and opening it again
-focuses the window.
+- **Which window am I in:** `inApplicationWindowInjectable` (`thisWindowIdInjectionToken`). The header leaves out the agent toggle and the pop-out button in a window, the empty state points at the tab's agent, and the "Data sources…" rows of the source pickers are contributed with `getDropDownMenuItemsInjectableBunch` only in the application window.
+- **Commands are built in sub-windows too:** Lens's palette works there, and `getCommandInjectableBunch` instantiates every command's `action` when listing them. An action that injects a main-view, tab or preferences token in `instantiate` throws in the window, so ours are `isActive` only in the application window and inject what they need when they run. Keep new commands that way.
+- **The tab menu hands out Lens's own tab id** (a uuid), not the id the kind opened the tab by. The tab's header gets both (`tabId` prop and `useTabId(mainViewTabHostKind)`), so `DashboardTitle` records the pair in `dashboardTabsInjectable`, and the menu row looks the dashboard up there. The tab's type is `getTabKindId(dashboardTabKind, di.scopeIds)` (`installed-extensions:installed-extensions-scope:lens-glance:dashboard`).
+- **Verified in the window:** panels, pickers, the theme, and the fleet's cluster picker with "All connected clusters" fanning out to each cluster's Prometheus: cluster records and Prometheus both answer there.
+- **Logs:** a window's renderer logs into the same `lens-renderer-root-frame.log`, its lines prefixed `[sub-window <kind id> <window id>]`.
+- **Rebuilds** close and reopen open windows; **a restart does not** restore them (Lens persists nothing about sub-windows). Restoring them would need our own persisted list and an instant (`@k8slens/instant`, not a dependency yet).
+- **Not done (optional):** keeping the time range in step across windows.
 
 ---
 

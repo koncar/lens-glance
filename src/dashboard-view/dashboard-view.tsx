@@ -17,6 +17,7 @@ import {
   DashboardIcon,
   ExpandMoreIcon,
   InfoOutlineIcon,
+  OpenInBrowserIcon,
   RefreshIcon,
   TerminalIcon,
 } from "@k8slens/icon";
@@ -38,6 +39,8 @@ import { fleetSelectionInjectable } from "../fleet/fleet-selection.injectable";
 import { fleetScope } from "../fleet/fleet-settings.injectable";
 import { LookForHubs } from "../fleet/hub-discovery.injectable";
 import { drawerFrameAttribute, EditorDrawer } from "../dashboard-edit/editor-drawer";
+import { inApplicationWindowInjectable } from "../dashboard-window/in-application-window.injectable";
+import { openDashboardWindowInjectable } from "../dashboard-window/open-dashboard-window.injectable";
 import { panelMenuKind } from "../dashboard-edit/panel-menu.injectable";
 import { PersesPanelBody } from "../perses/perses-panel-body";
 import { Contained } from "../ui/contained";
@@ -195,8 +198,23 @@ const ClusterSourceControl = observer(
   },
 );
 
+const OpenInWindowButton = ({ viewModel }: { readonly viewModel: DashboardViewModel }) => {
+  const openWindow = useSyncInject(openDashboardWindowInjectable);
+
+  return (
+    <ToolbarButton
+      $onClick={() => void openWindow(viewModel.clusterId, viewModel.fileName)}
+      $tooltip="Open in new window"
+    >
+      <OpenInBrowserIcon $size="m" />
+    </ToolbarButton>
+  );
+};
+
 const DashboardHeader = observer(
   ({ viewModel, status }: { readonly viewModel: DashboardViewModel; readonly status?: DashboardStatus }) => {
+    // In a window of its own, the dashboard is shown alone: the agent stays in its tab.
+    const inApplicationWindow = useSyncInject(inApplicationWindowInjectable);
     const dashboard = viewModel.dashboard.get();
     const file = viewModel.file.get();
     const menuData = { clusterId: viewModel.clusterId, fileName: viewModel.fileName };
@@ -246,13 +264,18 @@ const DashboardHeader = observer(
         >
           <EditIcon $size="m" />
         </ToolbarButton>
-        <ToolbarButton
-          $onClick={viewModel.toggleAgentPanel}
-          $tooltip={viewModel.agentPanelOpen.get() ? "Hide the agent" : "Show the agent"}
-          active={viewModel.agentPanelOpen.get()}
-        >
-          <TerminalIcon $size="m" />
-        </ToolbarButton>
+        {inApplicationWindow && (
+          <>
+            <ToolbarButton
+              $onClick={viewModel.toggleAgentPanel}
+              $tooltip={viewModel.agentPanelOpen.get() ? "Hide the agent" : "Show the agent"}
+              active={viewModel.agentPanelOpen.get()}
+            >
+              <TerminalIcon $size="m" />
+            </ToolbarButton>
+            <OpenInWindowButton viewModel={viewModel} />
+          </>
+        )}
       </Div>
     );
   },
@@ -516,6 +539,7 @@ const Groups = observer(
 );
 
 const NothingToShow = observer(({ viewModel }: { readonly viewModel: DashboardViewModel }) => {
+  const inApplicationWindow = useSyncInject(inApplicationWindowInjectable);
   const file = viewModel.file.get();
 
   return (
@@ -524,7 +548,11 @@ const NothingToShow = observer(({ viewModel }: { readonly viewModel: DashboardVi
       <Span $font={{ size: "m" }}>
         {file.status === "missing" ? "This dashboard's file does not exist yet." : "There is no dashboard to show yet."}
       </Span>
-      <Span $font={{ size: "s" }}>Ask the agent below to build one, and it appears here as it is written.</Span>
+      <Span $font={{ size: "s" }}>
+        {inApplicationWindow
+          ? "Ask the agent below to build one, and it appears here as it is written."
+          : "Ask the agent in the dashboard's tab in Lens to build one, and it appears here as it is written."}
+      </Span>
     </Div>
   );
 });
