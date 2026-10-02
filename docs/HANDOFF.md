@@ -57,6 +57,7 @@ outside `fleet/`; fleet dashboards are in `fleet/`. Lens's own files about a das
 - **No file system:** everything goes through `runCliCommandInjectionToken` with `shellQuote`d arguments (POSIX shell, so macOS/Linux only).
 - **Generic arrow functions in `.tsx`** need a comma: `<T,>(value: T) => …`.
 - **The extension runs in every window,** a dashboard's own window included, and anything gathered there (commands, menus, modals) is built there. Inject main-view, tab, navigator, hotbar, preferences, AI-tool and terminal tokens only where they run in the application window; see feature 1.
+- **The README is plain Markdown, no HTML.** Lens renders it with react-markdown and GitHub tables but without raw HTML, so a `<p align="center">` shows as text; only `<img>` is converted. Lens also gives each image its full pixel width (paragraphs are `width: fit-content`, nothing caps an `img`), so keep pictures at most 960px wide. The banner is `assets/banner.svg` (960×480 intrinsic, viewBox 1200×600), used both by Lens's card and at the top of the README.
 - **Prettier formats markdown too** when given a folder; check the skill files' frontmatter afterwards.
 
 ---

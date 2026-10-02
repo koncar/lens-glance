@@ -2,6 +2,10 @@
 
 What changed in each version of this extension, newest first.
 
+## 0.2.2
+
+- A new banner, and a README that reads right in Lens: no HTML tags showing, and pictures that fit the page.
+
 ## 0.2.1
 
 - The pin in a dashboard's header, and Pin to hotbar / Unpin from hotbar in its menu, are drawn in the theme's colour like the icons beside them, rather than in black.
