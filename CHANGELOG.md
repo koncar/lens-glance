@@ -5,6 +5,8 @@ What changed in each version of this extension, newest first.
 ## 0.2.0
 
 - Open a dashboard in a window of its own, to keep it on a second screen: from the button in its header, the right-click menu of its tab, or **Dashboards: Open in new window**. Opening it again brings the window forward, and changes to the dashboard show in both.
+- Pin a dashboard to the hotbar, from the pin in its header or its menu in the navigator, and open it with one click from anywhere. Renaming or deleting a dashboard updates its pins, and a pin whose dashboard is gone offers to unpin itself.
+- The menus of dashboards in the navigator close when one of their rows is chosen.
 
 ## 0.1.0
 

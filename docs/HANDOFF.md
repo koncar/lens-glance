@@ -79,33 +79,22 @@ What was learned:
 
 ---
 
-## 2. Pin a dashboard to the hotbar
+## 2. Pin a dashboard to the hotbar — done
 
-**Contract:** `@k8slens/hotbar-contracts` (add `^2.0.2`): `getHotbarItemKind`,
-`getHotbarItemKindInjectableBunch`, `addToHotbarInjectionToken`, `isInHotbarInjectionToken`,
-`isInHotbarReactiveInjectionToken`, `removeFromHotbarInjectionToken`, `hotbarItemMenuKind`.
-Read `hotbar-item-kind.md` and `hotbar-items.md`.
+Built in `src/hotbar/`: the kind (`dashboard-hotbar-kind.ts`, persisted data `{ clusterId, fileName }`, id
+`dashboard(${clusterId}/${fileName})`), the item (the dashboard glyph, `LayersIcon` for the fleet, with a four-letter label
+along the bottom as Lens labels its clusters, and the dashboard and its cluster in the tooltip), and
+`dashboardPinsInjectable`, which pins, unpins, toggles, opens and follows. Entry points: "Pin to hotbar" / "Unpin from
+hotbar" in the navigator menus of dashboards, the `PushPinIcon` button in the header (ringed while pinned, application
+window only), and "Open in new window" in the item's own hotbar menu (`getHotbarItemMenuItemInjectableBunch`, which
+the package exports though the instructions file shows only the plain menu kind).
 
-**Shape:**
+What was learned:
 
-```ts
-export const dashboardHotbarKind = getHotbarItemKind<{ clusterId: string; fileName: string; title: string }>()("dashboard");
-// id: `dashboard(${clusterId}/${fileName})`; the fleet's clusterId is "fleet".
-```
-
-- **The item:** the dashboard icon (`LayersIcon` for the fleet) and a short label, sized to the slot Lens frames. Look at how Lens's own cluster items look first. Clicking it opens the dashboard with `openDashboardInjectable`.
-- **A toggle:** ask `isInHotbar` first (adding an id twice throws), then add or remove. Show the state reactively.
-
-**Entry points:**
-- "Pin to hotbar" / "Unpin from hotbar" in the navigator menus of dashboards (`dashboardMenuRows` in `src/navigator/dashboards-navigator.injectable.tsx`).
-- A pin button in the dashboard header (`PushPinIcon`, ringed while pinned).
-- A row in the item's own hotbar menu (`hotbarItemMenuKind`), such as "Open in new window" once feature 1 exists.
-
-**Keep it true:**
-- **Rename and delete** (`libraryActionsInjectable`): remove the old item, and re-add it under the new id when it was pinned.
-- **A pinned dashboard whose file is gone:** opening it shows "Waiting for the file". Better: notify, and offer to unpin.
-
-**Done when** a dashboard pins, unpins and opens from the hotbar, survives a restart, and follows renames and deletes.
+- **The hotbar answers for its current page alone:** `isInHotbar`, `addToHotbar` and `removeFromHotbar` only see the page on screen, and there is no listing of a kind's items. So a rename or delete (`navigatorActions`, via `pins.follow`) removes the old pin and adds the new one only on the current page, and the re-added pin lands in the first free slot rather than the old one. A pin on another page finds its file gone when it is next clicked, and offers to unpin it (a confirm modal).
+- **A cluster's dashboard may be pinned under any cluster,** since every cluster shows the same library, so following a rename asks about every cluster in `allClusterRecordsInjectionToken`; a fleet dashboard only under `fleet`.
+- **The menu rows of dashboards in the navigator** did not close their menu (`close` was taken but not called). They do now.
+- **Not verified by hand:** how the item looks in its slot, and that pins survive a restart (Lens persists hotbar items; nothing of ours is needed for that).
 
 ---
 

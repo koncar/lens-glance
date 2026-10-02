@@ -12,6 +12,8 @@ import {
   FolderIcon,
   FolderOpenIcon,
   OpenInBrowserIcon,
+  PushOffIcon,
+  PushPinIcon,
 } from "@k8slens/icon";
 import {
   NavigatorBranchIndicator,
@@ -33,10 +35,12 @@ import {
 } from "@k8slens/navigator-contracts";
 import { useSyncInject } from "@k8slens/use-inject";
 import { computed } from "mobx";
+import { observer } from "mobx-react";
 import { dashboardLibraryInjectable } from "../dashboard-files/dashboard-library.injectable";
 import { openFleetPreferencesInjectable } from "../fleet/fleet-menus.injectable";
 import { fleetFolder, fleetScope } from "../fleet/fleet-settings.injectable";
 import { LookForHubs } from "../fleet/hub-discovery.injectable";
+import { dashboardPinsInjectable } from "../hotbar/dashboard-pins.injectable";
 import { navigatorActionsInjectable } from "./navigator-actions.injectable";
 
 interface TreeItem {
@@ -434,18 +438,49 @@ const dashboardMenuRows = (
     const close = useCloseDropDownMenu();
 
     return (
-      <DropDownMenuItemRow Icon={OpenInBrowserIcon} $onClick={() => void open(data.ids[0], pathOf(data.ids))}>
+      <DropDownMenuItemRow
+        Icon={OpenInBrowserIcon}
+        $onClick={() => {
+          close();
+          void open(data.ids[0], pathOf(data.ids));
+        }}
+      >
         Open
       </DropDownMenuItemRow>
     );
   };
+
+  const Pin = observer(({ data }: { readonly data: NavigatorItemOfKind<typeof kind> }) => {
+    const pins = useSyncInject(dashboardPinsInjectable);
+    const close = useCloseDropDownMenu();
+    const dashboard = { clusterId: data.ids[0], fileName: pathOf(data.ids) };
+    const pinned = pins.isPinned(dashboard).get();
+
+    return (
+      <DropDownMenuItemRow
+        Icon={pinned ? PushOffIcon : PushPinIcon}
+        $onClick={() => {
+          close();
+          void pins.toggle(dashboard);
+        }}
+      >
+        {pinned ? "Unpin from hotbar" : "Pin to hotbar"}
+      </DropDownMenuItemRow>
+    );
+  });
 
   const Rename = ({ data }: { readonly data: NavigatorItemOfKind<typeof kind> }) => {
     const { renameDashboard } = useSyncInject(navigatorActionsInjectable);
     const close = useCloseDropDownMenu();
 
     return (
-      <DropDownMenuItemRow Icon={EditIcon} $onClick={() => void renameDashboard(pathOf(data.ids))}>
+      <DropDownMenuItemRow
+        Icon={EditIcon}
+        $onClick={() => {
+          close();
+          void renameDashboard(pathOf(data.ids));
+        }}
+      >
         Rename…
       </DropDownMenuItemRow>
     );
@@ -456,7 +491,13 @@ const dashboardMenuRows = (
     const close = useCloseDropDownMenu();
 
     return (
-      <DropDownMenuItemRow Icon={DeleteIcon} $onClick={() => void deleteDashboard(pathOf(data.ids))}>
+      <DropDownMenuItemRow
+        Icon={DeleteIcon}
+        $onClick={() => {
+          close();
+          void deleteDashboard(pathOf(data.ids));
+        }}
+      >
         Delete…
       </DropDownMenuItemRow>
     );
@@ -468,6 +509,12 @@ const dashboardMenuRows = (
       forItemsOfKind: kind,
       orderNumber: menuOrder + 10,
       Component: Open,
+    }),
+    getNavigatorItemMenuItemInjectableBunch({
+      id: `${idPrefix}-pin`,
+      forItemsOfKind: kind,
+      orderNumber: menuOrder + 15,
+      Component: Pin,
     }),
     getNavigatorItemMenuItemInjectableBunch({
       id: `${idPrefix}-rename`,
@@ -490,11 +537,17 @@ const dashboardMenuRows = (
   ];
 };
 
-export const [openTopDashboardBunch, renameTopDashboardBunch, separatorTopDashboardBunch, deleteTopDashboardBunch] =
-  dashboardMenuRows(topDashboardKind, "lens-glance-top-dashboard");
+export const [
+  openTopDashboardBunch,
+  pinTopDashboardBunch,
+  renameTopDashboardBunch,
+  separatorTopDashboardBunch,
+  deleteTopDashboardBunch,
+] = dashboardMenuRows(topDashboardKind, "lens-glance-top-dashboard");
 
 export const [
   openFolderDashboardBunch,
+  pinFolderDashboardBunch,
   renameFolderDashboardBunch,
   separatorFolderDashboardBunch,
   deleteFolderDashboardBunch,
@@ -537,6 +590,7 @@ export const deleteFolderBunch = getNavigatorItemMenuItemInjectableBunch({
 
 export const [
   openFleetTopDashboardBunch,
+  pinFleetTopDashboardBunch,
   renameFleetTopDashboardBunch,
   separatorFleetTopDashboardBunch,
   deleteFleetTopDashboardBunch,
@@ -544,6 +598,7 @@ export const [
 
 export const [
   openFleetFolderDashboardBunch,
+  pinFleetFolderDashboardBunch,
   renameFleetFolderDashboardBunch,
   separatorFleetFolderDashboardBunch,
   deleteFleetFolderDashboardBunch,
