@@ -3,17 +3,18 @@ import { DashboardIcon } from "@k8slens/icon";
 import { getInjectable2 } from "@k8slens/injectable";
 import { mainViewTabHostKind } from "@k8slens/main-view-contracts";
 import { getPersistableMapInjectableBunch } from "@k8slens/persistable-contracts";
-import { getTabKind, getTabKindInjectableBunch, type TabId, type TabProps } from "@k8slens/tab-contracts";
+import { getTabKind, getTabKindInjectableBunch, type TabId, type TabProps, useTabId } from "@k8slens/tab-contracts";
 import { useSyncInject } from "@k8slens/use-inject";
 import { computed, observable, type ObservableMap, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { type PointerEvent, useRef } from "react";
+import { type PointerEvent, useEffect, useRef } from "react";
 import { AgentPanel } from "../agent/agent-panel";
 import { agentSplitInjectable } from "../agent/agent-split.injectable";
 import { nameOfDashboard } from "../dashboard-files/dashboard-library.injectable";
 import { dashboardViewModelInjectable } from "../dashboard-view/dashboard-view-model.injectable";
 import { DashboardView } from "../dashboard-view/dashboard-view";
 import { Contained } from "../ui/contained";
+import { dashboardTabsInjectable } from "./dashboard-tabs.injectable";
 
 export interface DashboardTabInput {
   readonly clusterId: string;
@@ -43,6 +44,14 @@ export const dashboardTabInputInjectable = getInjectable2({
 
 const DashboardTitle = observer(({ tabId }: TabProps<typeof mainViewTabHostKind>) => {
   const input = useSyncInject(dashboardTabInputInjectable, tabId).get();
+  const lensTabId = useTabId(mainViewTabHostKind);
+  const { remember } = useSyncInject(dashboardTabsInjectable);
+
+  useEffect(() => {
+    if (input) {
+      remember(lensTabId, input);
+    }
+  }, [remember, lensTabId, input]);
 
   return (
     <Div $flex={{ verticalAlign: "center", gap: "xs" }}>
@@ -82,10 +91,13 @@ const SplitHandle = ({
 const DashboardBuilder = observer(({ clusterId, fileName }: DashboardTabInput) => {
   const viewModel = useSyncInject(dashboardViewModelInjectable, clusterId, fileName);
   const split = useSyncInject(agentSplitInjectable);
+  const { show } = useSyncInject(dashboardTabsInjectable);
   // The tab on screen, which the line between the dashboard and the agent is dragged within.
   const tab = useRef<HTMLDivElement>(null);
   const agentOpen = viewModel.agentPanelOpen.get();
   const share = split.share.get();
+
+  useEffect(() => show({ clusterId, fileName }), [show, clusterId, fileName]);
 
   const dragTo = (pointerY: number) => {
     const bounds = tab.current?.getBoundingClientRect();

@@ -44,6 +44,7 @@ For dashboards across clusters, right-click **Fleet dashboards** at the top of t
 | **Fleet dashboards** | Drawn from a hub such as Thanos Query, or from each cluster's own Prometheus at once. The same dashboard works with either. |
 | **Data sources** | Found cluster by cluster: Services, Grafana's provisioned datasources and Perses's. Each one says whether it needs its cluster connected. A Prometheus-compatible address that answers from your machine is used directly, without connecting to the cluster at all. |
 | **Edit by hand** | A pencil turns it on: drag and resize panels; add, edit, duplicate and delete panels and groups; edit variables and the JSON; and **Undo**, which takes back the last change, yours or the agent's. |
+| **A window of its own** | Pop a dashboard out of Lens onto a second screen, from its header or its tab's menu. It stays live, with its own time range, variables and editing; the agent stays in the dashboard's tab. |
 | **Safe by design** | A panel that fails shows its error in its own card, and the rest keep working. A file with a mistake keeps the last good version on screen, with the problems listed above it. |
 
 ## Data sources

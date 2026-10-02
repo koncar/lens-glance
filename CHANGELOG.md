@@ -2,6 +2,10 @@
 
 What changed in each version of this extension, newest first.
 
+## 0.2.0
+
+- Open a dashboard in a window of its own, to keep it on a second screen: from the button in its header, the right-click menu of its tab, or **Dashboards: Open in new window**. Opening it again brings the window forward, and changes to the dashboard show in both.
+
 ## 0.1.0
 
 - Direct data sources: a Prometheus-compatible address outside the cluster, found in Grafana's or Perses's datasources or added by hand, is asked from your machine, so its dashboards need no cluster connected. Every data source found is flagged as needing its cluster connected or not.

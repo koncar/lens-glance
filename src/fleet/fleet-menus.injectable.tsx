@@ -1,5 +1,7 @@
 import {
+  type DropDownMenuKind,
   getDropDownMenuItemInjectableBunch,
+  getDropDownMenuItemsInjectableBunch,
   getDropDownMenuKind,
   useCloseDropDownMenu,
 } from "@k8slens/drop-down-menu-contracts";
@@ -12,6 +14,7 @@ import { useSyncInject } from "@k8slens/use-inject";
 import { observer } from "mobx-react";
 import packageJson from "../../package.json";
 import { dashboardViewModelInjectable } from "../dashboard-view/dashboard-view-model.injectable";
+import { inApplicationWindowInjectable } from "../dashboard-window/in-application-window.injectable";
 import { MultiValueList } from "../dashboard-view/variable-picker";
 import { clusterSourceSelectionInjectable } from "./cluster-source-selection.injectable";
 import { fleetSelectionInjectable } from "./fleet-selection.injectable";
@@ -133,19 +136,30 @@ export const dataSourceMenuItemBunch = getDropDownMenuItemInjectableBunch({
   Component: DataSourceMenu,
 });
 
-export const dataSourceMenuSeparatorBunch = getDropDownMenuItemInjectableBunch({
-  id: "lens-glance-data-source-menu-separator",
-  kind: dataSourceMenuKind,
-  orderNumber: 20,
-  Component: DropDownMenuSeparator,
-});
+// The way to the data sources page, after the choice of one. The preferences are the
+// application window's, so a dashboard's window of its own goes without.
+const manageDataSourcesRowsFor = <K extends DropDownMenuKind<any>>(id: string, kind: K) =>
+  getDropDownMenuItemsInjectableBunch({
+    id,
+    kind,
 
-export const manageDataSourcesMenuItemBunch = getDropDownMenuItemInjectableBunch({
-  id: "lens-glance-data-source-menu-manage",
-  kind: dataSourceMenuKind,
-  orderNumber: 30,
-  Component: ManageDataSources,
-});
+    instantiate: (di) => {
+      const inApplicationWindow = di.inject(inApplicationWindowInjectable)();
+
+      return () =>
+        inApplicationWindow
+          ? [
+              { id: `${id}-separator`, orderNumber: 20, Component: DropDownMenuSeparator },
+              { id: `${id}-manage`, orderNumber: 30, Component: ManageDataSources },
+            ]
+          : [];
+    },
+  });
+
+export const manageDataSourcesMenuItemsBunch = manageDataSourcesRowsFor(
+  "lens-glance-data-source-menu-manage",
+  dataSourceMenuKind,
+);
 
 export const clustersMenuItemBunch = getDropDownMenuItemInjectableBunch({
   id: "lens-glance-clusters-menu-options",
@@ -161,16 +175,7 @@ export const clusterSourceMenuItemBunch = getDropDownMenuItemInjectableBunch({
   Component: ClusterSourceMenu,
 });
 
-export const clusterSourceMenuSeparatorBunch = getDropDownMenuItemInjectableBunch({
-  id: "lens-glance-cluster-source-menu-separator",
-  kind: clusterSourceMenuKind,
-  orderNumber: 20,
-  Component: DropDownMenuSeparator,
-});
-
-export const manageClusterSourcesMenuItemBunch = getDropDownMenuItemInjectableBunch({
-  id: "lens-glance-cluster-source-menu-manage",
-  kind: clusterSourceMenuKind,
-  orderNumber: 30,
-  Component: ManageDataSources,
-});
+export const manageClusterSourcesMenuItemsBunch = manageDataSourcesRowsFor(
+  "lens-glance-cluster-source-menu-manage",
+  clusterSourceMenuKind,
+);
