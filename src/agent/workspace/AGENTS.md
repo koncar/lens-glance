@@ -18,3 +18,9 @@ The short version:
 ## Fleet dashboards
 
 The dashboards in `fleet/` show many clusters at once, drawn from a data source the user picks: a hub such as Thanos, or each cluster's own Prometheus. In their queries, put `$__cluster_filter` into every selector and `$__cluster_label` into every `by (...)`, and name series by `{{cluster}}`. Read `.claude/skills/lens-dashboard/references/fleet.md` before you change one.
+
+## Folders synced with git
+
+A folder here, or all of this one, may be a git repository the team shares dashboards through. Lens syncs it when the user asks, so leave git to Lens: do not commit, pull, push or rebase yourself.
+
+A dashboard holding conflict markers (`<<<<<<<`, `=======`, `>>>>>>>`) is a sync stopped at it: the file was changed both here and in the repository, and Lens shows its last version without problems meanwhile. When the user asks you to fix it, write one valid dashboard that keeps what each side meant, with no markers left, check its status as for any edit, and tell the user to Sync again.

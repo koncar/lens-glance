@@ -12,7 +12,7 @@ Kubernetes metrics per cluster or across your whole fleet · Prometheus, Thanos 
 - **✅ It checks its own work.** Each save is validated, and each panel's queries run against your cluster. Empty or failing panels are flagged to the agent, and it fixes them before it says it's done.
 - **🌐 Your whole fleet in one place.** Lens Glance looks in your clusters for Thanos, VictoriaMetrics, Mimir and Grafana's datasources, turns what answers into data sources, and gives every fleet dashboard a cluster picker with **All** and **Only**.
 - **🎨 Looks like Lens, because it is Lens.** Native components, your light or dark theme, panels you drag and resize, and a full panel and query editor when you'd rather edit by hand.
-- **📁 Files, not lock-in.** Every dashboard is a standard [Perses](https://perses.dev) JSON file in `~/.k8slens/lens-glance/dashboards`. Keep them in git, review them in pull requests, share them with your team, and edit them in any editor.
+- **📁 Files, not lock-in.** Every dashboard is a standard [Perses](https://perses.dev) JSON file in `~/.k8slens/lens-glance/dashboards`. Sync them with your team through git, review them in pull requests, and edit them in any editor.
 
 ## See it
 
@@ -56,6 +56,7 @@ For dashboards across clusters, click **+** on **Fleet dashboards** at the top o
 - **Data sources.** Found cluster by cluster: Services, Grafana's provisioned datasources and Perses's. Each one says whether it needs its cluster connected. A Prometheus-compatible address that answers from your machine is used directly, without connecting to the cluster at all.
 - **Edit by hand.** A pencil turns it on: drag and resize panels; add, edit, duplicate and delete panels and groups; edit variables and the JSON; and **Undo**, which takes back the last change, yours or the agent's.
 - **Share with your team.** **Copy JSON** or **Save to Downloads** from a dashboard's share button, and **Import dashboard…** from the navigator: paste it or pick the file, and its problems are listed before anything is written. What travels is the plain Perses dashboard, nothing of yours.
+- **Team sync through git.** Make a folder, or the whole library, a git repository your team shares, from its menu in the navigator. Its sync button commits your changes, takes your team's and sends yours, with your own git and sign-in. A dashboard changed on both sides keeps its last good version on screen until it's fixed, by you or by the agent.
 - **Hotbar pins.** Pin a dashboard to Lens's hotbar from its header or its menu in the navigator, and it opens with one click from anywhere. Pins follow renames and deletes.
 - **A window of its own.** Pop a dashboard out of Lens onto a second screen, from its header or its tab's menu. It stays live, with its own time range, variables and editing; the agent stays in the dashboard's tab.
 - **Safe by design.** A panel that fails shows its error in its own card, and the rest keep working. A file with a mistake keeps the last good version on screen, with the problems listed above it.

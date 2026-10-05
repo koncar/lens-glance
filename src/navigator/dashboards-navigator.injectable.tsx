@@ -41,6 +41,7 @@ import { dashboardLibraryInjectable } from "../dashboard-files/dashboard-library
 import { openFleetPreferencesInjectable } from "../fleet/fleet-menus.injectable";
 import { fleetFolder, fleetScope } from "../fleet/fleet-settings.injectable";
 import { LookForHubs } from "../fleet/hub-discovery.injectable";
+import { GitSyncButton } from "../git-sync/git-sync-button";
 import { dashboardPinsInjectable } from "../hotbar/dashboard-pins.injectable";
 import { importDashboardInjectable } from "../sharing/import-dashboard.injectable";
 import type { ImportTarget } from "../sharing/import-draft";
@@ -87,14 +88,16 @@ export const fleetFolderDashboardKind = getNavigatorItemKind<DashboardItem, [roo
 
 const fleetRootItems = computed((): TreeItem[] => [{ id: fleetScope, name: "Fleet dashboards", orderNumber: 900 }]);
 
-// The "+" at the end of a row the library's dashboards are made in: asks for a name, and opens
-// the new dashboard with its agent. Lens's own row actions show at all times, and so does this.
-// Its `$onClick` takes the click, so the row is not opened or closed by it too.
-const NewDashboardAction = ({ clusterId, folder }: { readonly clusterId: string; readonly folder: string }) => {
+// What can be done from the end of a row the library's dashboards are in: syncing it, when it
+// is a git repository, and the "+" that asks for a name and opens the new dashboard with its
+// agent. Lens's own row actions show at all times, and so do these. Their `$onClick` takes the
+// click, so the row is not opened or closed by it too.
+const FolderActions = ({ clusterId, folder }: { readonly clusterId: string; readonly folder: string }) => {
   const { newDashboard } = useSyncInject(navigatorActionsInjectable);
 
   return (
     <NavigatorItemActions>
+      <GitSyncButton folder={folder} />
       <Button
         $interactive
         $flex={{ verticalAlign: "center" }}
@@ -118,7 +121,7 @@ const DashboardsRootRow = ({ kind, ids, item }: NavigatorItemProps<TreeItem, typ
         <DashboardIcon $size={navigatorItemIconSize} />
       </NavigatorItemIcon>
       <NavigatorItemLabel>{item.name}</NavigatorItemLabel>
-      <NewDashboardAction clusterId={ids[0]} folder="" />
+      <FolderActions clusterId={ids[0]} folder="" />
     </>
   );
 };
@@ -134,7 +137,7 @@ const FleetRootRow = ({ kind, ids, item }: NavigatorItemProps<TreeItem, typeof n
         <LayersIcon $size={navigatorItemIconSize} />
       </NavigatorItemIcon>
       <NavigatorItemLabel>{item.name}</NavigatorItemLabel>
-      <NewDashboardAction clusterId={fleetScope} folder={fleetFolder} />
+      <FolderActions clusterId={fleetScope} folder={fleetFolder} />
       {/* Opened, the fleet's dashboards look for hubs in the connected clusters. */}
       {isOpen && <LookForHubs />}
     </>
@@ -152,7 +155,7 @@ const FleetFolderRow = ({ kind, ids, item }: NavigatorItemProps<TreeItem, typeof
         {isOpen ? <FolderOpenIcon $size={navigatorItemIconSize} /> : <FolderIcon $size={navigatorItemIconSize} />}
       </NavigatorItemIcon>
       <NavigatorItemLabel>{item.name}</NavigatorItemLabel>
-      <NewDashboardAction clusterId={fleetScope} folder={ids[1]} />
+      <FolderActions clusterId={fleetScope} folder={ids[1]} />
     </>
   );
 };
@@ -168,7 +171,7 @@ const FolderRow = ({ kind, ids, item }: NavigatorItemProps<TreeItem, typeof dash
         {isOpen ? <FolderOpenIcon $size={navigatorItemIconSize} /> : <FolderIcon $size={navigatorItemIconSize} />}
       </NavigatorItemIcon>
       <NavigatorItemLabel>{item.name}</NavigatorItemLabel>
-      <NewDashboardAction clusterId={ids[0]} folder={ids[2]} />
+      <FolderActions clusterId={ids[0]} folder={ids[2]} />
     </>
   );
 };
