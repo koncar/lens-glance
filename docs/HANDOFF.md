@@ -6,7 +6,7 @@ request of its own stacked on the one before (#1 to #4); their sections below sa
 1. **Pop a dashboard out into its own window**, so it can stay on a second screen. Done.
 2. **Pin a dashboard to the hotbar**, so it opens with one click from anywhere. Done.
 3. **A "+" on Dashboards and Fleet dashboards in the navigator**, so creating a dashboard is one click. Done.
-4. **Share dashboards with the team**: export and import JSON first (done), team sync after (next).
+4. **Share dashboards with the team**: export and import JSON (done), team sync through git (done), through a cluster (next).
 
 Read *Orientation* and *Gotchas* before you start: they hold what cost the most time to learn.
 
@@ -54,7 +54,7 @@ outside `fleet/`; fleet dashboards are in `fleet/`. Lens's own files about a das
 - **Host-provided packages** (`react`, `react-dom`, `mobx`, `zod`, `@k8slens/*`) must be declared at `^<version Lens serves>` (README, "Dependency versions"). `npm install <pkg>` writes the *installed* version (`^19.3.0`), which Lens then refuses: fix the range right after, or install with `--save-exact` and edit.
 - **The build is custom** (`build.mjs`): it bundles Perses, MUI and echarts, keeps what Lens serves external, and resolves every `require()` as an `import`. Without the last part, packages are bundled twice and React contexts split ("No QueryClient set").
 - **Perses 0.54 is pinned.** Its `dynamicImportPluginLoader` doesn't match the registry's lookup keys (we key plugins ourselves), and `PanelEditorForm` is deep-imported from `dist/` because it isn't exported. Re-check both before upgrading Perses.
-- **No file system:** everything goes through `runCliCommandInjectionToken` with `shellQuote`d arguments (POSIX shell, so macOS/Linux only).
+- **No file system:** everything goes through `runCliCommandInjectionToken` with `shellQuote`d arguments (POSIX shell, so macOS/Linux only). It **rejects on anything written to standard error**, so a tool that reports progress there, as git does, is run with `2>&1` and its exit code read from the output (`gitCommandInjectable`).
 - **Generic arrow functions in `.tsx`** need a comma: `<T,>(value: T) => …`.
 - **The extension runs in every window,** a dashboard's own window included, and anything gathered there (commands, menus, modals) is built there. Inject main-view, tab, navigator, hotbar, preferences, AI-tool and terminal tokens only where they run in the application window; see feature 1.
 - **The README is plain Markdown, no HTML.** Lens renders it with react-markdown and GitHub tables but without raw HTML, so a `<p align="center">` shows as text; only `<img>` is converted. Lens also gives each image its full pixel width (paragraphs are `width: fit-content`, nothing caps an `img`), so keep pictures at most 960px wide. The banner is `assets/banner.svg` (960×480 intrinsic, viewBox 1200×600), used both by Lens's card and at the top of the README.
@@ -123,18 +123,22 @@ What was learned:
 - **Import** (`importDashboardInjectable`, the modal in `import-dashboard-modal.injectable.tsx`, pure helpers in `import-draft.ts`): from the menus of Dashboards, Fleet dashboards and their folders, and the command **Dashboards: Import dashboard**. Paste into a CodeMirror JSON editor (the drawer's), or choose a file with an `<input type="file">` read with `file.text()`. `validateDashboard` runs as it is typed and its problems are listed; Import stays disabled until there are none. The folder list is the cluster's library (when started under a cluster) and the fleet's, preselected as where it was started; the name comes from `spec.display.name` or `metadata.name`. A query using `$__cluster_label` offers "Put it in Fleet dashboards". A clash turns Import into *Replace…*, which asks again before writing. The file is written pretty-printed, the library refreshed, and the dashboard opened.
 - **Checked** outside Lens against the real library: every dashboard validates and round-trips, names and clashes come out right, the fleet dashboard is recognised. **Not verified by hand:** the modal itself, copying, saving and revealing.
 
-**Version 2: team sync through git.** This fits teams best.
+**Version 2: team sync through git — done.** In `src/git-sync/`:
 
-- The dashboards folder, or a subfolder per team, is a git repository. The navigator offers **Sync** (`git pull --rebase`, commit, `git push` via `runCliCommandInjectionToken`), and the row shows whether there are unsynced changes.
-- JSON diffs read well in pull requests, and the agent can commit its own work.
-- Conflicts: show them, and keep the file's last valid version on screen as now.
+- **Any folder of the library, or the whole of it, is a repository**: a team's folder by default (the root's "Sync with a git repository…" offers a new folder first, named after the repository), or the whole library or every fleet dashboard. Nested repositories are not offered: a folder in a synced one is synced with it, and one holding synced folders is synced through them.
+- **Connecting** (`connectIn`): an empty or new folder is cloned into; a folder with dashboards becomes a repository (`git init`, `origin`, the remote's default branch or `main`), commits them, rebases them onto what the remote has and pushes. A failed first fetch removes the `.git` it made.
+- **Syncing** (`syncIn`): `git add -A`, a commit listing the files, `fetch`, `rebase origin/<branch>`, `push -u`. A conflict stops the rebase where it is: the file holds git's markers, so the dashboard shows its last valid version with the problems listed, as for any broken file. Sync again goes on once no conflicted file holds markers (`git add -A`, `rebase --continue`); *Cancel the sync* is `rebase --abort`. The agent's `AGENTS.md` tells it to leave git to Lens and how to merge a conflicted dashboard.
+- **Lens's and the agent's files** (`.lens/`, `.claude/`, `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, temp files) go into the repository's own `.git/info/exclude`, never into a shared `.gitignore`.
+- **Status** (`gitReposInjectable`): one shell command finds the repositories (four folders deep) and prints `git status --porcelain=v2 --branch`, the remote and whether a rebase is under way, every 5 s while shown; `git fetch` every 3 minutes. The row's sync button shows what waits to be sent (↑) and taken (↓), and turns red at a conflict. Its menu: Sync now, Cancel the sync, Open the repository (its web page, from an SSH or HTTPS remote), Stop syncing… (removes `.git`, after a confirmation). Command: **Dashboards: Sync with git**, every synced folder.
+- **git runs as the user's own**, with their configuration and sign-in, `GIT_TERMINAL_PROMPT=0` so a sign-in it cannot make fails instead of waiting, and `LC_ALL=C` so its messages can be read; `gitErrorOf` words sign-in, missing repository, missing identity and rejected pushes for the user.
+- **Checked** end to end, outside Lens, by driving `gitSyncInjectable` against local bare repositories with two users: connecting both ways, two-way sync, a conflict stopped, refused while markers remain, gone on once fixed, cancelled, a whole library with the agent's files kept out, stopping, and a missing repository. **Not verified by hand:** the button and menus in Lens, and a real GitHub remote.
 
 **Version 3: share through a cluster.**
 
 - **Reading works today.** Read `PersesDashboard` resources, or ConfigMaps labelled like Grafana's dashboard sidecar, from a cluster with `kubeResourcesInjectionToken`, and offer them for import, so a team's dashboards come with the cluster. This mirrors the datasource discovery in `src/fleet/hub-discovery.injectable.tsx`.
 - **Writing back is blocked:** the surface can patch resources but not create them. Report "create a Kubernetes resource" if this is wanted.
 
-Versions 2 and 3 are what is next.
+Version 3 is what is next.
 
 ---
 

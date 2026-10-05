@@ -1,6 +1,6 @@
 {
   "name": "lens-glance",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "Describe a dashboard and an AI agent builds it live in Lens: Kubernetes metrics per cluster or across your whole fleet, as Perses JSON you own.",
   "keywords": [
     "lens-extension",
@@ -51,6 +51,7 @@
     "@k8slens/command-palette-contracts": "^1.0.2",
     "@k8slens/drop-down-menu-contracts": "^2.2.2",
     "@k8slens/drop-down-menu-items": "^1.1.3",
+    "@k8slens/electron-contracts": "^1.0.4",
     "@k8slens/element-components": "^3.9.0",
     "@k8slens/feature-core": "^7.5.2",
     "@k8slens/hotbar-contracts": "^2.0.2",
