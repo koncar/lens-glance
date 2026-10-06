@@ -1,5 +1,3 @@
-import { shellQuote } from "@k8slens/ai-tools-contracts";
-import { runCliCommandInjectionToken } from "@k8slens/cli-contracts";
 import { getInjectable2 } from "@k8slens/injectable";
 import { openModalInjectionToken } from "@k8slens/modal-contracts";
 import { showErrorNotificationInjectionToken } from "@k8slens/notifications-contracts";
@@ -8,6 +6,7 @@ import { dashboardsDirectoryInjectable } from "../dashboard-files/dashboards-dir
 import { writeFileInjectable } from "../dashboard-files/write-file.injectable";
 import { openDashboardInjectable } from "../dashboard-tab/open-dashboard.injectable";
 import { askInjectable } from "../modals/dashboard-modals.injectable";
+import { hostFilesInjectable } from "../platform/host-files.injectable";
 import { importModalKind } from "./import-dashboard-modal.injectable";
 import type { ImportTarget } from "./import-draft";
 
@@ -15,20 +14,17 @@ import type { ImportTarget } from "./import-draft";
 // one, writes it into the library and opens it.
 export const importDashboardInjectable = getInjectable2({
   id: "lens-glance-import-dashboard",
-  consumptions: [openModalInjectionToken, runCliCommandInjectionToken, showErrorNotificationInjectionToken],
+  consumptions: [openModalInjectionToken, showErrorNotificationInjectionToken],
 
   instantiate: (di) => {
     const askToImport = di.inject(openModalInjectionToken.for(importModalKind).for(di.scopeIds))();
     const { askToConfirm } = di.inject(askInjectable)();
-    const runCliCommand = di.inject(runCliCommandInjectionToken)();
+    const files = di.inject(hostFilesInjectable)();
     const showErrorNotification = di.inject(showErrorNotificationInjectionToken)();
     const getDirectory = di.inject(dashboardsDirectoryInjectable);
     const writeFile = di.inject(writeFileInjectable)();
     const { refresh } = di.inject(dashboardLibraryInjectable)();
     const openDashboard = di.inject(openDashboardInjectable)();
-
-    const exists = async (path: string) =>
-      (await runCliCommand(`[ -e ${shellQuote(path)} ] && printf yes || printf no`)) === "yes";
 
     const importDashboard = async (target: ImportTarget, clusterId: string | undefined) => {
       const answer = await askToImport(target, clusterId);
@@ -49,7 +45,7 @@ export const importDashboardInjectable = getInjectable2({
         if (!replace) {
           return;
         }
-      } else if (await exists(destination)) {
+      } else if (await files.exists(destination)) {
         throw new Error(`${answer.path} was made in the meantime. Import it again under another name.`);
       }
 

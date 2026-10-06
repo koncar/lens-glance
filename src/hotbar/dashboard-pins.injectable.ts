@@ -1,5 +1,3 @@
-import { shellQuote } from "@k8slens/ai-tools-contracts";
-import { runCliCommandInjectionToken } from "@k8slens/cli-contracts";
 import { allClusterRecordsInjectionToken } from "@k8slens/cluster-contracts";
 import {
   addToHotbarInjectionToken,
@@ -13,6 +11,7 @@ import { dashboardsDirectoryInjectable } from "../dashboard-files/dashboards-dir
 import { openDashboardInjectable } from "../dashboard-tab/open-dashboard.injectable";
 import { fleetFolder, fleetScope } from "../fleet/fleet-settings.injectable";
 import { askInjectable } from "../modals/dashboard-modals.injectable";
+import { hostFilesInjectable } from "../platform/host-files.injectable";
 import { dashboardHotbarIdOf, dashboardHotbarKind, type PinnedDashboard } from "./dashboard-hotbar-kind";
 
 const isFleetPath = (path: string) => path === fleetFolder || path.startsWith(`${fleetFolder}/`);
@@ -30,7 +29,6 @@ export const dashboardPinsInjectable = getInjectable2({
     isInHotbarReactiveInjectionToken,
     removeFromHotbarInjectionToken,
     allClusterRecordsInjectionToken,
-    runCliCommandInjectionToken,
     showErrorNotificationInjectionToken,
   ],
 
@@ -40,7 +38,7 @@ export const dashboardPinsInjectable = getInjectable2({
     const isInHotbarReactive = di.inject(isInHotbarReactiveInjectionToken.for(dashboardHotbarKind).for(di.scopeIds));
     const removeFromHotbar = di.inject(removeFromHotbarInjectionToken.for(dashboardHotbarKind).for(di.scopeIds))();
     const allClusterRecords = di.inject(allClusterRecordsInjectionToken);
-    const runCliCommand = di.inject(runCliCommandInjectionToken)();
+    const files = di.inject(hostFilesInjectable)();
     const showErrorNotification = di.inject(showErrorNotificationInjectionToken)();
     const getDirectory = di.inject(dashboardsDirectoryInjectable);
     const openDashboard = di.inject(openDashboardInjectable)();
@@ -69,10 +67,7 @@ export const dashboardPinsInjectable = getInjectable2({
       }
     };
 
-    const fileExists = async (fileName: string) =>
-      (await runCliCommand(
-        `[ -e ${shellQuote(`${await getDirectory()}/${fileName}`)} ] && printf yes || printf no`,
-      )) === "yes";
+    const fileExists = async (fileName: string) => files.exists(`${await getDirectory()}/${fileName}`);
 
     // A dashboard of a cluster's library may be pinned under any cluster; a fleet dashboard
     // under the fleet alone.
