@@ -2,6 +2,10 @@
 
 What changed in each version of this extension, newest first.
 
+## 0.4.0
+
+- Windows: dashboards, the agent, sharing, hotbar pins, windows of their own and direct data sources now work on Windows too. Syncing with git there needs Git for Windows.
+
 ## 0.3.0
 
 - Sync dashboards with your team through git: make a folder, or the whole library, a git repository from its menu in the navigator, on GitHub or anywhere git reaches. Its sync button commits your changes, takes your team's and sends yours, with your own git and sign-in, and shows what waits to be sent or taken. A dashboard changed on both sides keeps its last good version on screen until it is fixed, by hand or by the agent; then Sync again, or cancel the sync.

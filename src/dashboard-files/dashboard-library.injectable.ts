@@ -1,7 +1,6 @@
-import { shellQuote } from "@k8slens/ai-tools-contracts";
-import { runCliCommandInjectionToken } from "@k8slens/cli-contracts";
 import { getInjectable2 } from "@k8slens/injectable";
 import { action, comparer, computed, observable, onBecomeObserved, onBecomeUnobserved } from "mobx";
+import { hostFilesInjectable } from "../platform/host-files.injectable";
 import { dashboardsDirectoryInjectable } from "./dashboards-directory.injectable";
 
 export interface LibraryDashboard {
@@ -29,10 +28,9 @@ export const folderOfDashboard = (path: string) => (path.includes("/") ? path.sl
 // so the listing is taken again every few seconds while something shows it.
 export const dashboardLibraryInjectable = getInjectable2({
   id: "lens-glance-dashboard-library",
-  consumptions: [runCliCommandInjectionToken],
 
   instantiate: (di) => {
-    const runCliCommand = di.inject(runCliCommandInjectionToken)();
+    const files = di.inject(hostFilesInjectable)();
     const getDirectory = di.inject(dashboardsDirectoryInjectable);
     const library = observable.box<DashboardLibrary>(
       { loaded: false, folders: [], dashboards: [] },
@@ -45,21 +43,14 @@ export const dashboardLibraryInjectable = getInjectable2({
       clearTimeout(timer);
 
       try {
-        const directory = shellQuote(await getDirectory());
-        // What starts with a dot is Lens's and the agent's own: .lens, .claude.
-        const output = await runCliCommand(
-          `mkdir -p ${directory} && cd ${directory} && find . -name '.*' ! -name . -prune -o -type d -print -o -type f -name '*.json' -print`,
-        );
-        const entries = output
-          .split("\n")
-          .map((line) => line.trim().replace(/^\.\/?/, ""))
-          .filter(Boolean);
-        const paths = entries.filter((entry) => entry.endsWith(".json")).sort();
+        // What starts with a dot is Lens's and the agent's own: .lens, .claude, .git.
+        const tree = await files.libraryTree(await getDirectory());
+        const paths = [...tree.files].sort();
 
         action(() =>
           library.set({
             loaded: true,
-            folders: entries.filter((entry) => !entry.endsWith(".json")).sort(),
+            folders: [...tree.folders].sort(),
             dashboards: paths.map((path) => ({ path, folder: folderOfDashboard(path), name: nameOfDashboard(path) })),
           }),
         )();

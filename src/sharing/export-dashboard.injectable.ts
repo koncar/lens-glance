@@ -1,5 +1,3 @@
-import { shellQuote } from "@k8slens/ai-tools-contracts";
-import { runCliCommandInjectionToken } from "@k8slens/cli-contracts";
 import { getInjectable2 } from "@k8slens/injectable";
 import {
   showErrorNotificationInjectionToken,
@@ -8,23 +6,17 @@ import {
 import { nameOfDashboard } from "../dashboard-files/dashboard-library.injectable";
 import { dashboardsDirectoryInjectable } from "../dashboard-files/dashboards-directory.injectable";
 import { writeFileInjectable } from "../dashboard-files/write-file.injectable";
-
-// The folder downloads go to: the one the desktop names on Linux, ~/Downloads otherwise.
-const downloadsDirectory = `"$(xdg-user-dir DOWNLOAD 2>/dev/null || printf %s "$HOME/Downloads")"`;
+import { hostFilesInjectable } from "../platform/host-files.injectable";
 
 // Sharing a dashboard is sharing its file as it is: plain Perses JSON, which opens in Perses and
 // anywhere else Perses dashboards do. Nothing of Lens's own travels with it, neither what is in
 // `.lens/` nor the data source chosen for it, which is each user's own.
 export const exportDashboardInjectable = getInjectable2({
   id: "lens-glance-export-dashboard",
-  consumptions: [
-    runCliCommandInjectionToken,
-    showSuccessNotificationInjectionToken,
-    showErrorNotificationInjectionToken,
-  ],
+  consumptions: [showSuccessNotificationInjectionToken, showErrorNotificationInjectionToken],
 
   instantiate: (di) => {
-    const runCliCommand = di.inject(runCliCommandInjectionToken)();
+    const files = di.inject(hostFilesInjectable)();
     const showSuccessNotification = di.inject(showSuccessNotificationInjectionToken)();
     const showErrorNotification = di.inject(showErrorNotificationInjectionToken)();
     const getDirectory = di.inject(dashboardsDirectoryInjectable);
@@ -40,22 +32,31 @@ export const exportDashboardInjectable = getInjectable2({
         }
       };
 
-    const textOf = async (fileName: string) =>
-      runCliCommand(`cat ${shellQuote(`${await getDirectory()}/${fileName}`)}`);
+    const textOf = async (fileName: string) => {
+      const text = await files.read(`${await getDirectory()}/${fileName}`);
+
+      if (text === undefined) {
+        throw new Error(`${fileName} is not in the dashboards folder any more`);
+      }
+
+      return text;
+    };
 
     // A name not taken yet in the downloads folder: the dashboard's, then with -2, -3 and on.
-    const freeDownloadPathFor = (name: string) =>
-      runCliCommand(
-        `d=${downloadsDirectory}; f="$d"/${shellQuote(`${name}.json`)}; n=1; ` +
-          `while [ -e "$f" ]; do n=$((n + 1)); f="$d"/${shellQuote(name)}-"$n".json; done; printf %s "$f"`,
-      );
+    const freeDownloadPathFor = async (name: string) => {
+      const downloads = await files.downloads();
 
-    // Shows the file where it was saved: selected in the Finder on macOS, its folder elsewhere.
-    const reveal = (path: string) =>
-      runCliCommand(
-        `if [ "$(uname)" = Darwin ]; then open -R ${shellQuote(path)}; ` +
-          `else xdg-open ${shellQuote(path.slice(0, path.lastIndexOf("/")))} >/dev/null 2>&1 & fi`,
-      ).catch(() => undefined);
+      for (let count = 1; ; count++) {
+        const path = files.native(`${downloads}/${count === 1 ? name : `${name}-${count}`}.json`);
+
+        if (!(await files.exists(path))) {
+          return path;
+        }
+      }
+    };
+
+    // Shows the file where it was saved, in the platform's file manager.
+    const reveal = (path: string) => files.reveal(path).catch(() => undefined);
 
     const exporting = {
       copyJson: reporting("copy the dashboard", async (fileName: string) => {

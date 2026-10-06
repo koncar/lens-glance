@@ -1,8 +1,9 @@
 import { getInjectable2 } from "@k8slens/injectable";
 import { comparer, computed, observable, onBecomeObserved, onBecomeUnobserved, runInAction } from "mobx";
 import { dashboardsDirectoryInjectable } from "../dashboard-files/dashboards-directory.injectable";
+import { hostFilesInjectable } from "../platform/host-files.injectable";
 import { gitCommandInjectable } from "./git-command.injectable";
-import { type GitRepo, parseRepos, statusScript } from "./git-status";
+import { type GitRepo, parseStatus } from "./git-status";
 
 const pollIntervalMs = 5000;
 // What others sent is asked for now and then, since that goes over the network.
@@ -17,6 +18,7 @@ export const gitReposInjectable = getInjectable2({
 
   instantiate: (di) => {
     const runGit = di.inject(gitCommandInjectable)();
+    const files = di.inject(hostFilesInjectable)();
     const getDirectory = di.inject(dashboardsDirectoryInjectable);
     const repos = observable.box<readonly GitRepo[]>([], { deep: false, equals: comparer.structural });
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -27,7 +29,7 @@ export const gitReposInjectable = getInjectable2({
       for (const repo of found) {
         // A sync stopped at a conflict is left as it is until the user goes on with it.
         if (repo.remote && !repo.rebasing) {
-          await runGit(directoryOf(library, repo.folder), "git fetch -q origin").catch(() => undefined);
+          await runGit(directoryOf(library, repo.folder), ["fetch", "-q", "origin"]).catch(() => undefined);
         }
       }
     };
@@ -37,7 +39,18 @@ export const gitReposInjectable = getInjectable2({
 
       try {
         const library = await getDirectory();
-        const found = parseRepos((await runGit(library, statusScript)).output);
+        const found = await Promise.all(
+          (await files.repositories(library)).map(async (folder) => {
+            const directory = directoryOf(library, folder);
+            const [status, remote, rebasing] = await Promise.all([
+              runGit(directory, ["status", "--porcelain=v2", "--branch"]),
+              runGit(directory, ["config", "--get", "remote.origin.url"]),
+              files.exists(`${directory}/.git/rebase-merge`, `${directory}/.git/rebase-apply`),
+            ]);
+
+            return parseStatus(folder, status.output, remote.code === 0 ? remote.output : undefined, rebasing);
+          }),
+        );
 
         runInAction(() => repos.set(found));
 

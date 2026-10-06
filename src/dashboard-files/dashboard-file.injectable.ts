@@ -1,8 +1,7 @@
-import { shellQuote } from "@k8slens/ai-tools-contracts";
-import { runCliCommandInjectionToken } from "@k8slens/cli-contracts";
 import { getInjectable2 } from "@k8slens/injectable";
 import type { DashboardResource } from "@perses-dev/core";
 import { computed, observable, onBecomeObserved, onBecomeUnobserved, runInAction } from "mobx";
+import { hostFilesInjectable } from "../platform/host-files.injectable";
 import { dashboardsDirectoryInjectable } from "./dashboards-directory.injectable";
 import { validateDashboard } from "./validate-dashboard";
 
@@ -21,18 +20,15 @@ export type DashboardFile =
       readonly changedAt: number;
     };
 
-const missingMarker = "__LENS_GRAFANA_FILE_IS_MISSING__";
-
 // How often the file is read while a dashboard shows it. Lens offers no file watching, so this
 // is what makes a change the agent writes appear: within half a second.
 const pollIntervalMs = 500;
 
 export const dashboardFileInjectable = getInjectable2({
   id: "lens-glance-dashboard-file",
-  consumptions: [runCliCommandInjectionToken],
 
   instantiate: (di) => {
-    const runCliCommand = di.inject(runCliCommandInjectionToken)();
+    const files = di.inject(hostFilesInjectable)();
     const getDirectory = di.inject(dashboardsDirectoryInjectable);
 
     return (fileName: string) => {
@@ -44,15 +40,12 @@ export const dashboardFileInjectable = getInjectable2({
         let path = fileName;
 
         try {
-          path = `${await getDirectory()}/${fileName}`;
+          path = files.native(`${await getDirectory()}/${fileName}`);
 
-          const quoted = shellQuote(path);
-          const text = await runCliCommand(
-            `if [ -f ${quoted} ]; then cat ${quoted}; else printf '%s' ${missingMarker}; fi`,
-          );
+          const text = await files.read(path);
           const current = state.get();
 
-          if (text === missingMarker) {
+          if (text === undefined) {
             if (current.status !== "missing") {
               runInAction(() => state.set({ status: "missing", path }));
             }

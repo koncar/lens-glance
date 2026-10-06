@@ -77,7 +77,7 @@ For dashboards across clusters, click **+** on **Fleet dashboards** at the top o
 
 **Can I use my dashboards elsewhere?** Yes. They are Perses dashboards, the format of a CNCF project.
 
-**Which platforms?** macOS and Linux.
+**Which platforms?** macOS, Linux and Windows. Syncing with git needs git, which on Windows comes with Git for Windows.
 
 ---
 
