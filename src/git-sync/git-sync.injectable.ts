@@ -1,4 +1,3 @@
-import { shellQuote } from "@k8slens/ai-tools-contracts";
 import { openLinkInBrowserInjectionToken } from "@k8slens/electron-contracts";
 import { getInjectable2 } from "@k8slens/injectable";
 import { openModalInjectionToken } from "@k8slens/modal-contracts";
@@ -12,6 +11,7 @@ import { dashboardLibraryInjectable } from "../dashboard-files/dashboard-library
 import { dashboardsDirectoryInjectable } from "../dashboard-files/dashboards-directory.injectable";
 import { fleetFolder } from "../fleet/fleet-settings.injectable";
 import { askInjectable } from "../modals/dashboard-modals.injectable";
+import { hostFilesInjectable } from "../platform/host-files.injectable";
 import { connectRepoModalKind } from "./connect-repo-modal.injectable";
 import { gitCommandInjectable } from "./git-command.injectable";
 import { directoryOf, gitReposInjectable } from "./git-repos.injectable";
@@ -21,23 +21,21 @@ import { excludedAtTheTop, excludedEverywhere, gitErrorOf, webPageOf } from "./g
 export const labelOfFolder = (folder: string) =>
   folder === "" ? "the library" : folder === fleetFolder ? "Fleet dashboards" : folder;
 
-const capitalized = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+// At the start of a sentence: a folder keeps its own name, the library takes a capital.
+const capitalized = (label: string) => (label === "the library" ? "The library" : label);
 
 // A failure already worded for the user.
 class SyncError extends Error {}
 
-const conflictedScript = "git diff --name-only --diff-filter=U";
-
-// Of the files a sync stopped at, those still holding git's conflict markers.
-const unresolvedScript = `${conflictedScript} | while IFS= read -r f; do grep -qE '^(<<<<<<<|>>>>>>>) ' "$f" && printf '%s\\n' "$f"; done; true`;
-
-const rebasingScript = "if [ -d .git/rebase-merge ] || [ -d .git/rebase-apply ]; then printf yes; fi";
+const conflictMarkers = /^(<<<<<<<|>>>>>>>) /m;
 
 const lines = (output: string) =>
   output
     .split("\n")
     .map((line) => line.trim())
     .filter(Boolean);
+
+const isConflict = (output: string) => /CONFLICT|could not apply/i.test(output);
 
 // Sharing dashboards through git: a folder of the library, or all of it, is a repository the
 // team can reach. Syncing commits what changed here, takes what others sent and sends what is
@@ -56,6 +54,7 @@ export const gitSyncInjectable = getInjectable2({
 
   instantiate: (di) => {
     const runGit = di.inject(gitCommandInjectable)();
+    const files = di.inject(hostFilesInjectable)();
     const gitRepos = di.inject(gitReposInjectable)();
     const getDirectory = di.inject(dashboardsDirectoryInjectable);
     const library = di.inject(dashboardLibraryInjectable)();
@@ -67,8 +66,8 @@ export const gitSyncInjectable = getInjectable2({
     const showErrorNotification = di.inject(showErrorNotificationInjectionToken)();
     const busy = observable.set<string>();
 
-    const gitOk = async (directory: string, script: string, doing: string) => {
-      const result = await runGit(directory, script);
+    const gitOk = async (directory: string, args: readonly string[], doing: string) => {
+      const result = await runGit(directory, args);
 
       if (result.code !== 0) {
         throw new SyncError(gitErrorOf(doing, result.output));
@@ -77,20 +76,34 @@ export const gitSyncInjectable = getInjectable2({
       return result.output;
     };
 
+    const isRebasing = (directory: string) =>
+      files.exists(`${directory}/.git/rebase-merge`, `${directory}/.git/rebase-apply`);
+
     // Lens's files and the agent's stay out of the repository, in its own exclude file, so
     // nothing of the team's repository is changed for them.
-    const excludeOwnFiles = (directory: string, isLibrary: boolean) =>
-      gitOk(
-        directory,
-        `mkdir -p .git/info && for p in ${[...excludedEverywhere, ...(isLibrary ? excludedAtTheTop : [])].map(shellQuote).join(" ")}; do grep -qxF "$p" .git/info/exclude 2>/dev/null || printf '%s\\n' "$p" >> .git/info/exclude; done`,
-        "set the repository up",
+    const excludeOwnFiles = async (directory: string, isLibrary: boolean) => {
+      const excludeFile = `${directory}/.git/info/exclude`;
+      const excluded = (await files.read(excludeFile)) ?? "";
+      const present = new Set(lines(excluded));
+      const missing = [...excludedEverywhere, ...(isLibrary ? excludedAtTheTop : [])].filter(
+        (pattern) => !present.has(pattern),
       );
 
+      if (missing.length) {
+        const separated = excluded && !excluded.endsWith("\n") ? `${excluded}\n` : excluded;
+
+        await files.write(excludeFile, `${separated}${missing.join("\n")}\n`);
+      }
+    };
+
+    const conflictedIn = async (directory: string, doing: string) =>
+      lines(await gitOk(directory, ["diff", "--name-only", "--diff-filter=U"], doing));
+
     const stoppedAtConflict = async (directory: string, folder: string) => {
-      const files = lines(await gitOk(directory, conflictedScript, "read the conflict"));
+      const conflicted = await conflictedIn(directory, "read the conflict");
 
       showInfoNotification(
-        `Syncing ${labelOfFolder(folder)} stopped at ${files.join(", ") || "a conflict"}: changed both here and in the repository. Until it is fixed, the dashboard shows its last version without problems. Fix it, by hand or with the agent, then Sync again, or cancel the sync to go back to yours.`,
+        `Syncing ${labelOfFolder(folder)} stopped at ${conflicted.join(", ") || "a conflict"}: changed both here and in the repository. Until it is fixed, the dashboard shows its last version without problems. Fix it, by hand or with the agent, then Sync again, or cancel the sync to go back to yours.`,
       );
     };
 
@@ -101,8 +114,14 @@ export const gitSyncInjectable = getInjectable2({
       await excludeOwnFiles(directory, folder === "");
 
       // A sync stopped at a conflict goes on once its files hold no conflict markers.
-      if ((await gitOk(directory, rebasingScript, doing)) === "yes") {
-        const unresolved = lines(await gitOk(directory, unresolvedScript, doing));
+      if (await isRebasing(directory)) {
+        const unresolved: string[] = [];
+
+        for (const file of await conflictedIn(directory, doing)) {
+          if (conflictMarkers.test((await files.read(`${directory}/${file}`)) ?? "")) {
+            unresolved.push(file);
+          }
+        }
 
         if (unresolved.length) {
           throw new SyncError(
@@ -110,12 +129,12 @@ export const gitSyncInjectable = getInjectable2({
           );
         }
 
-        await gitOk(directory, "git add -A", doing);
+        await gitOk(directory, ["add", "-A"], doing);
 
-        const goneOn = await runGit(directory, "git rebase --continue");
+        const goneOn = await runGit(directory, ["rebase", "--continue"]);
 
         if (goneOn.code !== 0) {
-          if (/CONFLICT|could not apply/i.test(goneOn.output)) {
+          if (isConflict(goneOn.output)) {
             return stoppedAtConflict(directory, folder);
           }
 
@@ -123,34 +142,33 @@ export const gitSyncInjectable = getInjectable2({
         }
       }
 
-      await gitOk(directory, "git add -A", doing);
+      await gitOk(directory, ["add", "-A"], doing);
 
-      const changed = lines(await gitOk(directory, "git diff --cached --name-only", doing));
+      const changed = lines(await gitOk(directory, ["diff", "--cached", "--name-only"], doing));
 
       if (changed.length) {
         await gitOk(
           directory,
-          `git commit -q -m ${shellQuote("Update dashboards from Lens Glance")} -m ${shellQuote(changed.join("\n"))}`,
+          ["commit", "-q", "-m", "Update dashboards from Lens Glance", "-m", changed.join(", ")],
           doing,
         );
       }
 
-      const branch = await gitOk(directory, "git symbolic-ref --short HEAD", doing);
+      const branch = await gitOk(directory, ["symbolic-ref", "--short", "HEAD"], doing);
 
-      await gitOk(directory, "git fetch -q origin", doing);
+      await gitOk(directory, ["fetch", "-q", "origin"], doing);
 
       const remoteBranch = `origin/${branch}`;
-      const remoteHasBranch =
-        (await runGit(directory, `git rev-parse -q --verify ${shellQuote(remoteBranch)}`)).code === 0;
+      const remoteHasBranch = (await runGit(directory, ["rev-parse", "-q", "--verify", remoteBranch])).code === 0;
       let taken = 0;
 
       if (remoteHasBranch) {
-        taken = Number(await gitOk(directory, `git rev-list --count HEAD..${shellQuote(remoteBranch)}`, doing)) || 0;
+        taken = Number(await gitOk(directory, ["rev-list", "--count", `HEAD..${remoteBranch}`], doing)) || 0;
 
-        const rebased = await runGit(directory, `git rebase -q ${shellQuote(remoteBranch)}`);
+        const rebased = await runGit(directory, ["rebase", "-q", remoteBranch]);
 
         if (rebased.code !== 0) {
-          if (/CONFLICT|could not apply/i.test(rebased.output)) {
+          if (isConflict(rebased.output)) {
             return stoppedAtConflict(directory, folder);
           }
 
@@ -159,15 +177,15 @@ export const gitSyncInjectable = getInjectable2({
       }
 
       // A repository the remote has no branch of yet sends its first commit, when it has one.
-      const hasCommits = (await runGit(directory, "git rev-parse -q --verify HEAD")).code === 0;
+      const hasCommits = (await runGit(directory, ["rev-parse", "-q", "--verify", "HEAD"])).code === 0;
       const toSend = remoteHasBranch
-        ? Number(await gitOk(directory, `git rev-list --count ${shellQuote(remoteBranch)}..HEAD`, doing)) || 0
+        ? Number(await gitOk(directory, ["rev-list", "--count", `${remoteBranch}..HEAD`], doing)) || 0
         : hasCommits
           ? 1
           : 0;
 
       if (toSend) {
-        await gitOk(directory, `git push -q -u origin ${shellQuote(branch)}`, doing);
+        await gitOk(directory, ["push", "-q", "-u", "origin", branch], doing);
       }
 
       showSuccessNotification(
@@ -178,11 +196,7 @@ export const gitSyncInjectable = getInjectable2({
     };
 
     const isEmpty = async (directory: string) =>
-      (await gitOk(
-        "/",
-        `[ -d ${shellQuote(directory)} ] && find ${shellQuote(directory)} -mindepth 1 -maxdepth 1 ! -name .DS_Store | head -1; true`,
-        "look in the folder",
-      )) === "";
+      (await files.entries(directory)).filter((name) => name !== ".DS_Store").length === 0;
 
     // A folder with nothing in it takes the repository as it is. One with dashboards already
     // becomes a repository of its own, its dashboards put on top of what the repository has.
@@ -190,41 +204,41 @@ export const gitSyncInjectable = getInjectable2({
       const doing = `sync ${labelOfFolder(folder)} with ${url}`;
 
       if (await isEmpty(directory)) {
-        const parent = directory.slice(0, directory.lastIndexOf("/"));
+        const parent = directory.slice(0, Math.max(directory.lastIndexOf("/"), directory.lastIndexOf("\\")));
 
-        await gitOk("/", `mkdir -p ${shellQuote(parent)}`, doing);
-        await gitOk(parent, `git clone -q ${shellQuote(url)} ${shellQuote(directory)}`, doing);
+        await files.makeDirectory(parent);
+        await gitOk(parent, ["clone", "-q", url, files.native(directory)], doing);
         await excludeOwnFiles(directory, folder === "");
         showSuccessNotification(`${capitalized(labelOfFolder(folder))} is synced with ${url}.`);
 
         return;
       }
 
-      await gitOk(directory, "git init -q", doing);
+      await gitOk(directory, ["init", "-q"], doing);
 
       try {
-        await gitOk(directory, `git remote add origin ${shellQuote(url)}`, doing);
-        await gitOk(directory, "git fetch -q origin", doing);
+        await gitOk(directory, ["remote", "add", "origin", url], doing);
+        await gitOk(directory, ["fetch", "-q", "origin"], doing);
       } catch (error) {
         // Nothing was shared yet: the folder is left as it was.
-        await runGit(directory, "rm -rf .git");
+        await files.removeTree(`${directory}/.git`);
         throw error;
       }
 
       await excludeOwnFiles(directory, folder === "");
 
-      const remoteHead = await gitOk(directory, "git ls-remote --symref origin HEAD", doing);
+      const remoteHead = await gitOk(directory, ["ls-remote", "--symref", "origin", "HEAD"], doing);
       const branch = /^ref: refs\/heads\/(\S+)\s+HEAD$/m.exec(remoteHead)?.[1] ?? "main";
 
-      await gitOk(directory, `git symbolic-ref HEAD ${shellQuote(`refs/heads/${branch}`)}`, doing);
-      await gitOk(directory, "git add -A", doing);
-      await gitOk(directory, `git commit -q -m ${shellQuote("Dashboards from Lens Glance")}`, doing);
+      await gitOk(directory, ["symbolic-ref", "HEAD", `refs/heads/${branch}`], doing);
+      await gitOk(directory, ["add", "-A"], doing);
+      await gitOk(directory, ["commit", "-q", "-m", "Dashboards from Lens Glance"], doing);
 
-      if ((await runGit(directory, `git rev-parse -q --verify ${shellQuote(`origin/${branch}`)}`)).code === 0) {
-        const rebased = await runGit(directory, `git rebase -q ${shellQuote(`origin/${branch}`)}`);
+      if ((await runGit(directory, ["rev-parse", "-q", "--verify", `origin/${branch}`])).code === 0) {
+        const rebased = await runGit(directory, ["rebase", "-q", `origin/${branch}`]);
 
         if (rebased.code !== 0) {
-          if (/CONFLICT|could not apply/i.test(rebased.output)) {
+          if (isConflict(rebased.output)) {
             return stoppedAtConflict(directory, folder);
           }
 
@@ -232,7 +246,7 @@ export const gitSyncInjectable = getInjectable2({
         }
       }
 
-      await gitOk(directory, `git push -q -u origin ${shellQuote(branch)}`, doing);
+      await gitOk(directory, ["push", "-q", "-u", "origin", branch], doing);
       showSuccessNotification(`${capitalized(labelOfFolder(folder))} is synced with ${url}.`);
     };
 
@@ -281,7 +295,7 @@ export const gitSyncInjectable = getInjectable2({
       },
 
       cancelSync: working(async (directory, folder) => {
-        if ((await gitOk(directory, rebasingScript, `cancel the sync of ${labelOfFolder(folder)}`)) !== "yes") {
+        if (!(await isRebasing(directory))) {
           showInfoNotification(
             `No sync of ${labelOfFolder(folder)} is stopped at a conflict: there is nothing to cancel.`,
           );
@@ -289,7 +303,7 @@ export const gitSyncInjectable = getInjectable2({
           return;
         }
 
-        await gitOk(directory, "git rebase --abort", `cancel the sync of ${labelOfFolder(folder)}`);
+        await gitOk(directory, ["rebase", "--abort"], `cancel the sync of ${labelOfFolder(folder)}`);
         showInfoNotification(`The sync of ${labelOfFolder(folder)} is cancelled: its dashboards are as you had them.`);
       }),
 
@@ -309,8 +323,11 @@ export const gitSyncInjectable = getInjectable2({
         );
 
         if (confirmed) {
-          await runGit(directory, "git rebase --abort");
-          await gitOk(directory, "rm -rf .git", `stop syncing ${labelOfFolder(folder)}`);
+          if (await isRebasing(directory)) {
+            await runGit(directory, ["rebase", "--abort"]);
+          }
+
+          await files.removeTree(`${directory}/.git`);
         }
       }),
     };

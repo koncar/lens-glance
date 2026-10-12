@@ -1,10 +1,9 @@
-import { shellQuote } from "@k8slens/ai-tools-contracts";
-import { runCliCommandInjectionToken } from "@k8slens/cli-contracts";
 import { getInjectable2 } from "@k8slens/injectable";
 import { computed, observable, onBecomeObserved, onBecomeUnobserved, runInAction } from "mobx";
 import { dashboardsDirectoryInjectable } from "../dashboard-files/dashboards-directory.injectable";
 import { metricsRouteInjectable } from "../metrics/metrics-route.injectable";
 import { writeFileInjectable } from "../dashboard-files/write-file.injectable";
+import { hostFilesInjectable } from "../platform/host-files.injectable";
 
 const pollIntervalMs = 1000;
 const rowsPerQuery = 50;
@@ -29,10 +28,9 @@ const queriesOf = (text: string): string[] => {
 // cluster, and what came back is written to .lens/<name>.query.result.json.
 export const agentQueryResponderInjectable = getInjectable2({
   id: "lens-glance-agent-query-responder",
-  consumptions: [runCliCommandInjectionToken],
 
   instantiate: (di) => {
-    const runCliCommand = di.inject(runCliCommandInjectionToken)();
+    const files = di.inject(hostFilesInjectable)();
     const routeOf = di.inject(metricsRouteInjectable);
     const getDirectory = di.inject(dashboardsDirectoryInjectable);
     const writeFile = di.inject(writeFileInjectable)();
@@ -80,8 +78,7 @@ export const agentQueryResponderInjectable = getInjectable2({
       const listen = async () => {
         try {
           const directory = await getDirectory();
-          const request = shellQuote(requestFileOf(directory, fileName));
-          const text = await runCliCommand(`if [ -f ${request} ]; then cat ${request}; fi`);
+          const text = (await files.read(requestFileOf(directory, fileName))) ?? "";
 
           if (text.trim() && text !== lastRequest) {
             lastRequest = text;

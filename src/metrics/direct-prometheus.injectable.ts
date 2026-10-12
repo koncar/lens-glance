@@ -1,7 +1,6 @@
-import { shellQuote } from "@k8slens/ai-tools-contracts";
-import { runCliCommandInjectionToken } from "@k8slens/cli-contracts";
 import { getInjectable2 } from "@k8slens/injectable";
 import type { PrometheusRange, PrometheusSeries } from "@k8slens/prometheus-contracts";
+import { hostFilesInjectable } from "../platform/host-files.injectable";
 
 interface PrometheusAnswer {
   readonly status?: "success" | "error";
@@ -29,22 +28,34 @@ export const describeHttpStatus = (status: number) =>
 // Asks a Prometheus API at an address of its own, outside any cluster, so that nothing needs Lens
 // connected to a cluster. The extension surface has no network of its own, and a request from the
 // window would be refused by most servers for coming from another origin, so it is asked by curl
-// on the user's machine, which also goes through their VPN and proxy as they do.
+// on the user's machine, which also goes through their VPN and proxy as they do. Windows has
+// curl too, since Windows 10.
 export const directPrometheusInjectable = getInjectable2({
   id: "lens-glance-direct-prometheus",
-  consumptions: [runCliCommandInjectionToken],
 
   instantiate: (di) => {
-    const runCliCommand = di.inject(runCliCommandInjectionToken)();
+    const files = di.inject(hostFilesInjectable)();
 
     const ask = async (url: string, path: string, parameters: Readonly<Record<string, string | number>>) => {
       const endpoint = `${url.replace(/\/+$/, "")}${path}`;
-      const data = Object.entries(parameters)
-        .map(([name, value]) => `--data-urlencode ${shellQuote(`${name}=${value}`)}`)
-        .join(" ");
-      const output = await runCliCommand(
-        `curl -sS --max-time 30 -G ${shellQuote(endpoint)} ${data} -w ${shellQuote(`\n${statusMarker}%{http_code}`)}`,
-      );
+      const data = Object.entries(parameters).flatMap(([name, value]) => ["--data-urlencode", `${name}=${value}`]);
+      // curl reads the \n of its -w itself, so no line break goes into the command.
+      const curl = await files.run("curl", [
+        "-sS",
+        "--max-time",
+        "30",
+        "-G",
+        endpoint,
+        ...data,
+        "-w",
+        `\\n${statusMarker}%{http_code}`,
+      ]);
+
+      if (curl.code !== 0) {
+        throw new Error(curl.output || `curl could not ask ${endpoint}`);
+      }
+
+      const output = curl.output;
       const at = output.lastIndexOf(statusMarker);
       const status = Number(output.slice(at + statusMarker.length).trim());
       const body = output.slice(0, at).trim();

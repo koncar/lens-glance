@@ -17,54 +17,41 @@ export interface GitRepo {
   readonly rebasing: boolean;
 }
 
-export const statusMarker = "@@repo ";
-export const remoteMarker = "@@remote ";
-export const rebasingMarker = "@@rebasing";
+// What `git status --porcelain=v2 --branch` says of a repository, with its remote and whether a
+// rebase is under way, which it does not say.
+export const parseStatus = (folder: string, output: string, remote: string | undefined, rebasing: boolean): GitRepo => {
+  const repo: { -readonly [K in keyof GitRepo]: GitRepo[K] } = {
+    folder,
+    remote: remote?.trim() || undefined,
+    ahead: 0,
+    behind: 0,
+    changed: [],
+    conflicted: [],
+    rebasing,
+  };
 
-// What the status command prints for each repository: its folder, `git status --porcelain=v2
-// --branch`, its remote, and whether a rebase is under way.
-export const parseRepos = (output: string): GitRepo[] => {
-  const repos: GitRepo[] = [];
-  let current: { -readonly [K in keyof GitRepo]: GitRepo[K] } | undefined;
-
-  for (const line of output.split("\n")) {
-    if (line.startsWith(statusMarker)) {
-      const folder = line.slice(statusMarker.length).replace(/^\.\/?/, "");
-
-      current = { folder, ahead: 0, behind: 0, changed: [], conflicted: [], rebasing: false };
-      repos.push(current);
-      continue;
-    }
-
-    if (!current) {
-      continue;
-    }
-
+  for (const line of output.split(/\r?\n/)) {
     const fields = line.split(" ");
 
-    if (line.startsWith(remoteMarker)) {
-      current.remote = line.slice(remoteMarker.length).trim() || undefined;
-    } else if (line === rebasingMarker) {
-      current.rebasing = true;
-    } else if (line.startsWith("# branch.head ")) {
-      current.branch = line.slice("# branch.head ".length) === "(detached)" ? undefined : fields[2];
+    if (line.startsWith("# branch.head ")) {
+      repo.branch = fields[2] === "(detached)" ? undefined : fields[2];
     } else if (line.startsWith("# branch.upstream ")) {
-      current.upstream = fields[2];
+      repo.upstream = fields[2];
     } else if (line.startsWith("# branch.ab ")) {
-      current.ahead = Math.abs(Number(fields[2]) || 0);
-      current.behind = Math.abs(Number(fields[3]) || 0);
+      repo.ahead = Math.abs(Number(fields[2]) || 0);
+      repo.behind = Math.abs(Number(fields[3]) || 0);
     } else if (line.startsWith("1 ")) {
-      current.changed = [...current.changed, fields.slice(8).join(" ")];
+      repo.changed = [...repo.changed, fields.slice(8).join(" ")];
     } else if (line.startsWith("2 ")) {
-      current.changed = [...current.changed, fields.slice(9).join(" ").split("\t")[0]];
+      repo.changed = [...repo.changed, fields.slice(9).join(" ").split("\t")[0]];
     } else if (line.startsWith("u ")) {
-      current.conflicted = [...current.conflicted, fields.slice(10).join(" ")];
+      repo.conflicted = [...repo.conflicted, fields.slice(10).join(" ")];
     } else if (line.startsWith("? ")) {
-      current.changed = [...current.changed, line.slice(2)];
+      repo.changed = [...repo.changed, line.slice(2)];
     }
   }
 
-  return repos;
+  return repo;
 };
 
 /** The repository a folder of the library is synced in: its own, or one it is inside. */
@@ -120,8 +107,8 @@ export const gitErrorOf = (doing: string, output: string) => {
     return `Could not ${doing}: someone sent changes in the meantime. Sync again.`;
   }
 
-  if (/command not found|git: not found/i.test(output)) {
-    return `Could not ${doing}: git is not installed, or not on the PATH Lens runs commands with.`;
+  if (/command not found|git: not found|is not recognized as an internal or external command/i.test(output)) {
+    return `Could not ${doing}: git is not installed, or not on the PATH Lens runs commands with. On Windows, install Git for Windows.`;
   }
 
   const lastLines = output.trim().split("\n").slice(-4).join("\n");
@@ -158,16 +145,3 @@ export const folderNameOf = (remote: string) =>
 // own exclude file rather than a .gitignore it would share.
 export const excludedEverywhere = ["*.lens-glance-tmp", ".DS_Store"];
 export const excludedAtTheTop = ["/.lens/", "/.claude/", "/AGENTS.md", "/CLAUDE.md", "/GEMINI.md"];
-
-// Finds the repositories in the library, a few folders deep, and prints what parseRepos reads.
-// Run in the library's folder; every git error goes to the output, since a command that writes
-// to its standard error fails.
-export const statusScript = [
-  `find . -maxdepth 4 \\( -name .lens -o -name .claude -o -name node_modules \\) -prune -o -name .git -print -prune 2>/dev/null |`,
-  `while IFS= read -r g; do`,
-  `  d="\${g%/.git}"; printf '${statusMarker}%s\\n' "$d"`,
-  `  ( cd "$d" && git status --porcelain=v2 --branch 2>&1;`,
-  `    printf '${remoteMarker}%s\\n' "$(git remote get-url origin 2>/dev/null)";`,
-  `    if [ -d .git/rebase-merge ] || [ -d .git/rebase-apply ]; then echo '${rebasingMarker}'; fi )`,
-  `done`,
-].join("\n");
