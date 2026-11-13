@@ -38,10 +38,11 @@
     "banner": "assets/banner.svg"
   },
   "scripts": {
-    "build": "lens-types-check && node build.mjs",
+    "build": "lens-types-check && lens-extension-dependencies-check && node build.mjs",
     "watch": "node build.mjs --watch",
     "clean": "rimraf dist/",
-    "notices": "node build.mjs --metafile && node scripts/third-party-notices.cjs && rm bundle-meta.json"
+    "notices": "node build.mjs --metafile && node scripts/third-party-notices.cjs && rm bundle-meta.json",
+    "prepublishOnly": "npm run build && lens-extension-publish-check"
   },
   "dependencies": {
     "@k8slens/ai-tools-contracts": "^1.0.4",
@@ -87,7 +88,7 @@
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@hookform/resolvers": "^3.10.0",
-    "@k8slens/package-build": "^3.0.0",
+    "@k8slens/package-build": "^3.4.0",
     "@k8slens/typescript": "^8.0.0",
     "@mui/material": "^6.5.0",
     "@perses-dev/bar-chart-plugin": "0.13.0",

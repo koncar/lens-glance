@@ -1,0 +1,73 @@
+name: Publish to npm
+
+# Publishes the version a tag names, such as v0.5.0, with npm's trusted publishing: npm trusts
+# this workflow of this repository to publish lens-glance, so no npm token is kept anywhere.
+# Set up once on npmjs.com, under the package's Settings > Trusted Publisher: GitHub Actions,
+# user koncar, repository lens-glance, workflow publish.yml.
+#
+# npm runs prepublishOnly first: the build, and Lens's own checks that what is packed loads in
+# Lens, against the versions Lens serves in .github/lens-extension-dependency-versions.json.
+# Copy that file from ~/.k8slens/extensions/extension-development-instructions/ after a Lens
+# upgrade.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+  # The OIDC token npm exchanges for the right to publish, and signs the provenance with.
+  id-token: write
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          cache: npm
+
+      - name: Check the tag against package.json
+        id: version
+        run: |
+          name="$(node -p 'require("./package.json").name')"
+          version="$(node -p 'require("./package.json").version')"
+
+          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error::The tag $GITHUB_REF_NAME does not name the version in package.json, $version."
+            exit 1
+          fi
+
+          if npm view "$name@$version" version >/dev/null 2>&1; then
+            echo "::error::$name@$version is on npm already."
+            exit 1
+          fi
+
+          # A prerelease goes out under next, so users keep installing the latest release.
+          case "$version" in
+            *-*) echo "dist-tag=next" >> "$GITHUB_OUTPUT" ;;
+            *) echo "dist-tag=latest" >> "$GITHUB_OUTPUT" ;;
+          esac
+
+      # Trusted publishing needs npm 11.5.1 or later.
+      - name: Update npm
+        run: npm install --global npm@11
+
+      # Install scripts are not needed to build, and not run.
+      - run: npm ci --ignore-scripts
+
+      - name: Publish
+        run: npm publish --access public --tag "${{ steps.version.outputs.dist-tag }}"
+        env:
+          LENS_EXTENSION_DEPENDENCY_VERSIONS_FILE: ${{ github.workspace }}/.github/lens-extension-dependency-versions.json
