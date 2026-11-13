@@ -8,6 +8,7 @@ import { useSyncInject } from "@k8slens/use-inject";
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import packageJson from "../../package.json";
+import { GrafanaDashboardSources } from "../grafana/grafana-preferences";
 import { directProbeInjectable } from "../metrics/direct-probe.injectable";
 import { directIdOf, fleetSettingsInjectable, hubIdOf } from "./fleet-settings.injectable";
 import { hubDiscoveryInjectable } from "./hub-discovery.injectable";
@@ -470,5 +471,6 @@ export const fleetPreferencesBunch = getExtensionPreferencePageInjectableBunch({
   blocks: [
     { id: "data-sources", orderNumber: 10, Component: DataSources },
     { id: "discovery", orderNumber: 20, Component: Discovery },
+    { id: "grafana-dashboards", orderNumber: 30, Component: GrafanaDashboardSources },
   ],
 });

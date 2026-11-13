@@ -13,6 +13,7 @@ import { dashboardLibraryInjectable } from "../dashboard-files/dashboard-library
 import { fleetFolder } from "../fleet/fleet-settings.injectable";
 import { lensPersesThemeInjectable } from "../perses/lens-theme.injectable";
 import {
+  draftOf,
   type ImportTarget,
   importTargetsOf,
   isFleetTarget,
@@ -20,11 +21,10 @@ import {
   looksLikeFleetDashboard,
   pathOf,
   suggestedNameOf,
-  validationOf,
 } from "./import-draft";
 
 export interface ImportAnswer {
-  /** The dashboard's JSON, as pasted or read from its file, and found to have no problems. */
+  /** The dashboard's JSON, as pasted or read from its file, or converted from Grafana's, and found to have no problems. */
   readonly text: string;
   readonly target: ImportTarget;
   /** Where in the library it is written. */
@@ -62,14 +62,15 @@ const ImportModal = observer(({ input: [initialTarget, clusterId] }: ModalProps<
   const [readError, setReadError] = useState<string | undefined>(undefined);
   const fileInput = useRef<HTMLInputElement>(null);
 
-  const validation = validationOf(text);
+  const draft = draftOf(text);
+  const validation = draft.validation;
   const targets = importTargetsOf(library, clusterId);
   const target = targets.find((one) => one.id === targetId) ?? targets[0];
   const name = typedName ?? suggestedNameOf(validation);
   const path = pathOf(target, name);
   const valid = validation?.valid === true;
   const taken = valid && isTaken(library, path);
-  const answer = (replace: boolean) => respond({ text, target, path, replace });
+  const answer = (replace: boolean) => respond({ text: draft.text, target, path, replace });
 
   const readFile = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -95,7 +96,8 @@ const ImportModal = observer(({ input: [initialTarget, clusterId] }: ModalProps<
         <Div $flex={{ direction: "vertical", gap: "m" }}>
           <Div $flex={{ verticalAlign: "center", gap: "s" }}>
             <Span $font={{ size: "s" }} $color="textMuted" $flexChild="shrinkable">
-              Paste a Perses dashboard's JSON, such as one copied from Lens Glance, or choose its file.
+              Paste a Perses dashboard's JSON, such as one copied from Lens Glance, or a Grafana dashboard's, which is
+              converted, or choose its file.
             </Span>
             <Div $flexChild />
             <PlainButton Icon={UploadFileIcon} onClick={() => fileInput.current?.click()}>
@@ -141,6 +143,14 @@ const ImportModal = observer(({ input: [initialTarget, clusterId] }: ModalProps<
               )}
             </Div>
           )}
+          {valid && draft.fromGrafana && (
+            <Span $font={{ size: "s" }} $color="textMuted">
+              A Grafana dashboard, converted.{" "}
+              {draft.fromGrafana.notes.length === 0
+                ? "All of it carried over."
+                : `${draft.fromGrafana.notes.length} ${draft.fromGrafana.notes.length === 1 ? "thing" : "things"} of it could not be carried over: ${draft.fromGrafana.notes.slice(0, 3).join(" ")}`}
+            </Span>
+          )}
           {valid && (
             <Div $flex={{ gap: "m" }}>
               <Div $style={{ flex: "1 1 0", minWidth: 0 }}>
@@ -170,7 +180,7 @@ const ImportModal = observer(({ input: [initialTarget, clusterId] }: ModalProps<
                     A dashboard is at {path} already: give this one another name, or replace it.
                   </Span>
                 )}
-                {looksLikeFleetDashboard(text) && !isFleetTarget(target) && (
+                {looksLikeFleetDashboard(draft.text) && !isFleetTarget(target) && (
                   <Div $flex={{ direction: "vertical", gap: "xxs", horizontalAlign: "left" }}>
                     <Span $font={{ size: "s" }} $color="textDefault">
                       Its queries use $__cluster_label, which fleet dashboards fill in.

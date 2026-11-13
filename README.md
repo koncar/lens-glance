@@ -40,6 +40,10 @@ Pick the values to show, or **Only** one.
 
 ![A namespace picker with All and Only](https://raw.githubusercontent.com/koncar/lens-glance/main/docs/images/variables.png)
 
+## Install
+
+[Open Lens Glance in Lens](https://app.k8slens.dev/lens-launcher?c=lens%3A%2F%2Fapp%2Fopen%2Fextension%3Fname%3Dlens-glance), or find **lens-glance** under **Extensions → Browse Marketplace**.
+
 ## Get started in a minute
 
 1. **Install** it from **Extensions → Browse Marketplace** in Lens: search for **lens-glance**.
@@ -55,7 +59,8 @@ For dashboards across clusters, click **+** on **Fleet dashboards** at the top o
 - **Fleet dashboards.** Drawn from a hub such as Thanos Query, or from each cluster's own Prometheus at once. The same dashboard works with either.
 - **Data sources.** Found cluster by cluster: Services, Grafana's provisioned datasources and Perses's. Each one says whether it needs its cluster connected. A Prometheus-compatible address that answers from your machine is used directly, without connecting to the cluster at all.
 - **Edit by hand.** A pencil turns it on: drag and resize panels; add, edit, duplicate and delete panels and groups; edit variables and the JSON; and **Undo**, which takes back the last change, yours or the agent's.
-- **Share with your team.** **Copy JSON** or **Save to Downloads** from a dashboard's share button, and **Import dashboard…** from the navigator: paste it or pick the file, and its problems are listed before anything is written. What travels is the plain Perses dashboard, nothing of yours.
+- **Share with your team.** **Copy JSON** or **Save to Downloads** from a dashboard's share button, and **Import dashboard…** from the navigator: paste it or pick the file, and its problems are listed before anything is written. What travels is the plain Perses dashboard, nothing of yours. A Grafana dashboard's JSON is converted as it is imported.
+- **Bring your Grafana dashboards.** **Import from Grafana…** in the menu of a cluster's **Dashboards** finds the Grafana dashboards in the cluster and makes them Lens dashboards, in the `grafana` folder of the library. It looks in ConfigMaps, as Grafana's sidecar and kube-prometheus load them, and in grafana-operator's GrafanaDashboards; once you allow it in the extension's preferences, also in Secrets labelled `grafana_dashboard`, in Grafana's API inside its pod, or in Grafana's database copied from its pod, which also know the dashboards made in Grafana itself. Charts, stats, gauges, bars, tables and text carry over with their queries, variables and rows; what Lens Glance does not draw shows a note in its place.
 - **Team sync through git.** Make a folder, or the whole library, a git repository your team shares, from its menu in the navigator. Its sync button commits your changes, takes your team's and sends yours, with your own git and sign-in. A dashboard changed on both sides keeps its last good version on screen until it's fixed, by you or by the agent.
 - **Hotbar pins.** Pin a dashboard to Lens's hotbar from its header or its menu in the navigator, and it opens with one click from anywhere. Pins follow renames and deletes.
 - **A window of its own.** Pop a dashboard out of Lens onto a second screen, from its header or its tab's menu. It stays live, with its own time range, variables and editing; the agent stays in the dashboard's tab.
@@ -71,7 +76,9 @@ For dashboards across clusters, click **+** on **Fleet dashboards** at the top o
 
 ## FAQ
 
-**Do I need Grafana?** No. Lens Glance draws dashboards itself, with the Perses libraries, inside Lens. If Grafana is in your cluster, its datasources are read to find yours.
+**Do I need Grafana?** No. Lens Glance draws dashboards itself, with the Perses libraries, inside Lens. If Grafana is in your cluster, its datasources are read to find yours, and its dashboards can be imported.
+
+**What does importing from Grafana read?** Only what you allow, and only when you ask. ConfigMaps and grafana-operator's resources are read as Lens reads them for you anyway. Secrets are read only once you allow it, and only those labelled `grafana_dashboard`. Asking Grafana's pod runs a command in it with `kubectl exec`, which needs the right to and is recorded in the cluster's audit log: its API is asked as the admin the pod is started with, whose password never leaves the pod, and its database is copied into Lens's memory only for as long as reading its dashboards takes, and written nowhere.
 
 **Where do my metrics go?** From your cluster's Prometheus to Lens, as for Lens's own charts. The AI tool you choose reads the dashboard file and the query results Lens writes next to it, and talks to its own service as it always does.
 

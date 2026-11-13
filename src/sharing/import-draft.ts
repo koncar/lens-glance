@@ -2,6 +2,8 @@ import type { DashboardLibrary } from "../dashboard-files/dashboard-library.inje
 import { toFileName } from "../dashboard-files/library-actions.injectable";
 import { type DashboardValidation, validateDashboard } from "../dashboard-files/validate-dashboard";
 import { fleetFolder, fleetScope } from "../fleet/fleet-settings.injectable";
+import { isGrafanaDashboard } from "../grafana/grafana-json";
+import { convertGrafanaDashboard } from "../grafana/grafana-to-perses";
 
 /** Where an imported dashboard goes: a folder of the library, and whose dashboard it is there. */
 export interface ImportTarget {
@@ -44,6 +46,38 @@ export const importTargetsOf = (library: DashboardLibrary, clusterId: string | u
 
 export const validationOf = (text: string): DashboardValidation | undefined =>
   text.trim() ? validateDashboard(text) : undefined;
+
+export interface ImportDraft {
+  /** The Perses dashboard to import: what was pasted, or what a Grafana dashboard pasted became. */
+  readonly text: string;
+  readonly validation?: DashboardValidation;
+  /** Set when a Grafana dashboard was pasted: what of it could not be carried over. */
+  readonly fromGrafana?: { readonly notes: readonly string[] };
+}
+
+/** What is pasted, as it is imported: a Grafana dashboard is converted first. */
+export const draftOf = (text: string): ImportDraft => {
+  let json: unknown;
+
+  try {
+    json = JSON.parse(text);
+  } catch {
+    return { text, validation: validationOf(text) };
+  }
+
+  if (!isGrafanaDashboard(json)) {
+    return { text, validation: validationOf(text) };
+  }
+
+  try {
+    const conversion = convertGrafanaDashboard(json);
+    const converted = JSON.stringify(conversion.dashboard, null, 2);
+
+    return { text: converted, validation: validateDashboard(converted), fromGrafana: { notes: conversion.notes } };
+  } catch (error) {
+    return { text, validation: { valid: false, errors: [String((error as Error).message ?? error)] } };
+  }
+};
 
 /** The name a dashboard comes with: its display name, or its name. */
 export const suggestedNameOf = (validation: DashboardValidation | undefined) =>

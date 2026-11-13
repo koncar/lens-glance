@@ -15,7 +15,6 @@ import {
   prometheusIsConfiguredInjectionToken,
   queryPrometheusRangeInjectionToken,
 } from "@k8slens/prometheus-contracts";
-import type { Subscribable } from "@k8slens/subscribable";
 import { useSyncInject } from "@k8slens/use-inject";
 import { observer } from "mobx-react";
 import {
@@ -30,6 +29,7 @@ import {
 import { clusterLabels, directProbeInjectable, hubOf } from "../metrics/direct-probe.injectable";
 import { fleetSettingsInjectable } from "./fleet-settings.injectable";
 import { persesDatasourceKind, persesV1alpha1, persesV1alpha2 } from "./perses-kinds";
+import { readOnce } from "./read-once";
 import { type FoundSource, grafanaSources, mergeFound, persesSource, serviceSource } from "./source-catalog";
 
 export interface ClusterScan {
@@ -45,19 +45,6 @@ export interface ClusterScan {
   readonly unseen: readonly string[];
   readonly error?: string;
 }
-
-// Reads a subscribable once: subscribed for as long as its first value takes.
-const readOnce = async <T,>(subscribable: Subscribable<T>) => {
-  const subscription = subscribable.subscribe();
-
-  subscription.claim();
-
-  try {
-    return (await subscription.value).get();
-  } finally {
-    subscription.dispose();
-  }
-};
 
 const nowInSeconds = () => Math.floor(Date.now() / 1000);
 
