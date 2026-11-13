@@ -2,6 +2,14 @@
 
 What changed in each version of this extension, newest first.
 
+## 0.5.0
+
+- **Import from Grafana…**, from the menu of a cluster's **Dashboards** or of the library's `grafana` folder in the navigator, or the command **Dashboards: Import from Grafana**: the Grafana dashboards found in the cluster, made into Lens dashboards in the `grafana` folder of the library, in a folder for each of Grafana's. Pick which, and dashboards imported before are replaced only once you confirm.
+- It looks in ConfigMaps holding dashboards, as Grafana's sidecar and kube-prometheus load them, and in grafana-operator's GrafanaDashboards. Once you allow each in the extension's preferences, it also looks in Secrets labelled `grafana_dashboard`, asks Grafana's API inside its pod, or copies Grafana's SQLite database out of its pod, the last two with `kubectl exec`; only those know the dashboards made in Grafana itself. Nothing is looked in until you ask.
+- What carries over: time series and graphs, stats and singlestats, gauges, bar gauges and bar charts, pie charts as bars, tables with their queries merged and their columns renamed, hidden, sorted and formatted as in Grafana, and text. Rows become groups, open or collapsed; variables, units, thresholds, value mappings, legends and library panels come along. Grafana's cluster and datasource variables give way to Lens's own choice of cluster and data source, and every query gets Lens's cluster filter. A panel Lens Glance does not draw, such as a heatmap, becomes a note in its place naming it and its queries.
+- **Import dashboard…** takes a Grafana dashboard's JSON too, converted the same way.
+- Variables honour `capturingRegexp` and `sort`.
+
 ## 0.4.0
 
 - Windows: dashboards, the agent, sharing, hotbar pins, windows of their own and direct data sources now work on Windows too. Syncing with git there needs Git for Windows.
